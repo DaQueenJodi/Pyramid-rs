@@ -1,18 +1,33 @@
+
 {
-    "Decks": [
-        {
-                "name": "Isaac Main",
-                "collumns": 11,
-                "cards": 11,
-                "file": "isaac.png",
-                "offset": 0
-        },
-        {
-            "name": "Isaac Bonus",
-            "collumns": 10,
-            "cards": 65,
-            "file": "isaac.png",
-            "offset": 11
+  "decks": [
+    {
+      "name": "Isaac Main",
+      "collumns": 11,
+      "cards": 11,
+      "file": "decks/set1.png",
+      "offset": 1
+    },
+    {
+      "name": "Isaac Bonus",
+      "collumns": 10,
+      "cards": 65,
+      "file": "decks/set1.png",
+      "offset": 11
+    },
+    {
+      "name": "Spire Main",
+      "collumns": 1,
+      "cards": 3,
+      "file": "decks/set1.png",
+      "offset": 75
+    },
+    {
+      "name": "Spire Bonus",
+      "collumns": 1,
+      "cards": 15,
+      "file": "decks/set1.png",
+      "offset": 78
     }
-        ]
-}   
+  ]
+}

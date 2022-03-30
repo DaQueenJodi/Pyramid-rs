@@ -703,6 +703,8 @@ dependencies = [
  "bevy-inspector-egui",
  "bevycheck",
  "lazy_static",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

@@ -13,10 +13,17 @@ pub const CARD_H: f32 = 406.0;
 pub const CARD_W: f32 = 580.0;
 
 pub const NUM_ROWS: usize = 4;
-pub const NUM_COLLUMNS: usize = 6; 
+pub const NUM_COLLUMNS: usize = 4;
 
 pub const SCALE: f32 = 0.7;
 
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+enum GameState {
+    MainMenu,
+    InGame,
+    Paused,
+}
 
 
 fn main() {
@@ -43,16 +50,24 @@ fn spawn_camera(mut commands: Commands) {
 }
 
 fn spawn_row(mut commands: Commands, mut decks: Res<Decks>) {
-    let mut x =  -4.0 * CARD_W;
+    let mut x = -2.5 * CARD_W;
     let mut y = 2.5 * CARD_H;
 
-    for i in 0..40 {
+    for i in 0..10 {
         if i % NUM_COLLUMNS == 0 {
             y -= CARD_H + 100.0;
-            x =  -4.0 * (CARD_W);
+            x = -2.5 * (CARD_W);
         }
         x += CARD_W;
         println!("index: {}, x: {}, y: {}", i, x, y);
-        deck::spawn_card(&mut commands, &mut decks, 1, i, Vec3::new(x * SCALE, y * SCALE, 0.0));
+        deck::spawn_card(
+            &mut commands,
+            &mut decks,
+            0,
+            i,
+            Vec3::new(x * SCALE, y * SCALE, 0.0),
+        );
     }
+   
+    // deck::spawn_card(&mut commands, &decks, 0, 9, Vec3::new(0.0,0.0,0.0));
 }
