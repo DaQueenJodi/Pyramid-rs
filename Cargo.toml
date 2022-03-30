@@ -9,6 +9,7 @@ edition = "2021"
 bevy = {version = "0.6", features = ["dynamic", "wayland"]}
 bevy-inspector-egui = "0.9.0"
 bevycheck = "0.2.0"
+lazy_static = "1.4.0"
 
 [workspace.metadata.dylint]
 libraries = [

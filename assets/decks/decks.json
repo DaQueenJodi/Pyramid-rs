@@ -1,0 +1,18 @@
+{
+    "Decks": [
+        {
+                "name": "Isaac Main",
+                "collumns": 11,
+                "cards": 11,
+                "file": "isaac.png",
+                "offset": 0
+        },
+        {
+            "name": "Isaac Bonus",
+            "collumns": 10,
+            "cards": 65,
+            "file": "isaac.png",
+            "offset": 11
+    }
+        ]
+}   
