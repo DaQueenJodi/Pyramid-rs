@@ -29,7 +29,7 @@ pub struct DeckPlugin;
 
 impl Plugin for DeckPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system_to_stage(StartupStage::PreStartup, make_decks);
+        app.add_startup_system(make_decks);
     }
 }
 
@@ -98,7 +98,7 @@ pub fn spawn_card(
     let deck = decks.0.get(deck_num).unwrap();
     let mut sprite = TextureAtlasSprite::new(index + deck.offset);
     // println!("{}", index + (deck.offset));
-    // println!("{:#?}", deck);
+    // println!("{:#?}", deck)  ;
     sprite.custom_size = Some(Vec2::new(CARD_H * SCALE, CARD_W * SCALE));
 
     commands

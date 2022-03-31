@@ -1,9 +1,6 @@
 #![allow(clippy::redundant_field_names)]
-use std::collections::HashMap;
-#[macro_use]
-extern crate lazy_static;
-
 use bevy::{asset::HandleId, prelude::*};
+use std::collections::HashMap;
 
 pub mod deck;
 use deck::*;
@@ -11,8 +8,6 @@ pub mod debug;
 use debug::*;
 pub mod menu;
 use menu::*;
-pub mod util;
-use util::*;
 
 pub const CLEAR: Color = Color::rgb(0.1, 0.1, 0.1);
 pub const RESOLUTION: f32 = 16.0 / 9.0;
@@ -43,7 +38,7 @@ fn main() {
             resizable: false,
             ..Default::default()
         })
-        .add_startup_system(spawn_row)
+        .add_state(GameState::MainMenu)
         .add_plugins(DefaultPlugins)
         .add_plugin(DebugPlugin)
         .add_plugin(DeckPlugin)
