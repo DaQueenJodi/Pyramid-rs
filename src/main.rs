@@ -1,11 +1,18 @@
 #![allow(clippy::redundant_field_names)]
-use bevy::prelude::*;
+use std::collections::HashMap;
+#[macro_use]
+extern crate lazy_static;
+
+use bevy::{asset::HandleId, prelude::*};
 
 pub mod deck;
 use deck::*;
 pub mod debug;
 use debug::*;
 pub mod menu;
+use menu::*;
+pub mod util;
+use util::*;
 
 pub const CLEAR: Color = Color::rgb(0.1, 0.1, 0.1);
 pub const RESOLUTION: f32 = 16.0 / 9.0;
@@ -18,8 +25,15 @@ pub const NUM_COLLUMNS: usize = 4;
 
 pub const SCALE: f32 = 0.7;
 
+pub struct SpriteSheetIds {
+    pub ids: HashMap<String, Handle<TextureAtlas>>,
+}
+
 fn main() {
     App::new()
+        .insert_resource(SpriteSheetIds {
+            ids: HashMap::new(),
+        })
         .insert_resource(ClearColor(CLEAR))
         .insert_resource(WindowDescriptor {
             width: 1920.0,
@@ -33,33 +47,34 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(DebugPlugin)
         .add_plugin(DeckPlugin)
+        .add_plugin(MenuPlugin)
         .add_startup_system(spawn_camera)
+        .add_system_set(SystemSet::on_enter(GameState::InGame).with_system(spawn_row))
         .run();
 }
 
 fn spawn_camera(mut commands: Commands) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+    commands.spawn_bundle(UiCameraBundle::default());
 }
 
 fn spawn_row(mut commands: Commands, mut decks: Res<Decks>) {
     let mut x = -2.5 * CARD_W;
     let mut y = 2.5 * CARD_H;
-
-    for i in 0..10 {
+    let deck_num = 4;
+    for i in 0..(decks.0.get(deck_num).unwrap().num_cards) {
         if i % NUM_COLLUMNS == 0 {
             y -= CARD_H + 100.0;
             x = -2.5 * (CARD_W);
         }
         x += CARD_W;
-        println!("index: {}, x: {}, y: {}", i, x, y);
+        //println!("index: {}, x: {}, y: {}", i, x, y);
         deck::spawn_card(
             &mut commands,
             &mut decks,
-            4,
+            deck_num,
             i,
             Vec3::new(x * SCALE, y * SCALE, 0.0),
         );
     }
-
-    // deck::spawn_card(&mut commands, &decks, 0, 9, Vec3::new(0.0,0.0,0.0));
 }
