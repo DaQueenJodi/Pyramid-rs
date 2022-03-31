@@ -1,4 +1,7 @@
+use std::path::Path;
+
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::{deck::Decks, NUM_DECKS};
 
@@ -19,6 +22,52 @@ pub enum GameState {
 }
 #[derive(Component)]
 struct MainMenu;
+#[derive(Serialize, Deserialize)]
+struct EnabledJsonData {
+    enabled: Vec<usize>,
+}
+
+static mut ENABLED_JSON: Vec<usize> = vec![];
+
+fn check_json(num: usize) -> bool {
+    unsafe { ENABLED_JSON.contains(&num) }
+}
+
+
+fn remove_from_json(num: usize) {
+    // read from file
+    let file_path = Path::new("config/enabled_decks.json");
+    let reader = std::fs::File::open(file_path).unwrap();
+    let mut json_data: EnabledJsonData = serde_json::from_reader(std::io::BufReader::new(reader)).unwrap();
+
+    // taken from https://stackoverflow.com/a/26243276/17942630
+    let i = json_data.enabled.iter().position(|x| *x == num).unwrap();
+    json_data.enabled.remove(i);
+
+    // write back to file
+    let writer = std::fs::File::open(file_path).unwrap();
+    serde_json::to_writer(writer, &json_data).unwrap();
+
+
+}
+fn add_to_json(num: usize) {
+    let file_path = Path::new("config/enabled_decks.json");
+    let reader = std::fs::File::open(file_path).unwrap();
+    let mut json_data: EnabledJsonData = serde_json::from_reader(std::io::BufReader::new(reader)).unwrap();
+    
+    json_data.enabled.push(num);
+
+    let writer = std::fs::File::open(file_path).unwrap();
+    serde_json::to_writer(writer, &json_data).unwrap();
+
+}
+
+fn update_json() {
+    let file_path = Path::new("config/enabled_decks.json");
+    let json_str = std::fs::read_to_string(file_path).unwrap();
+    let json_data: EnabledJsonData = serde_json::from_str(&json_str).unwrap();
+    unsafe { ENABLED_JSON = json_data.enabled }
+}
 
 pub struct MenuPlugin;
 
@@ -125,7 +174,6 @@ fn handle_ui_buttons(
                 *color = NORMAL_BUTTON.into();
             }
         }
-        if *state.current() == GameState::DeckSelection {}
     }
 }
 

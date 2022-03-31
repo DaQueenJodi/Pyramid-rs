@@ -1,7 +1,8 @@
 #![allow(clippy::redundant_field_names)]
 use bevy::{asset::HandleId, prelude::*};
 use std::collections::HashMap;
-
+#[macro_use]
+extern crate lazy_static;
 pub mod deck;
 use deck::*;
 pub mod debug;
