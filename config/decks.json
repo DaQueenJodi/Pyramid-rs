@@ -2,34 +2,28 @@
 {
   "decks": [
     {
-      "name": "Isaac Main",
-      "cards": 11,
+      "name": "The Binding of Isaac",
+      "primary_cards": 11,
+      "secondary_cards": 14,
       "file": "decks/set1.png",
-      "offset": 0
+      "primary_offset": 0,
+      "secondary_offset": 10
     },
     {
-      "name": "Isaac Bonus",
-      "cards": 14,
+      "name": "Slay the Spire",
+      "primary_cards": 3,
+      "secondary_cards": 15,
       "file": "decks/set1.png",
-      "offset": 10
-    },
-    {
-      "name": "Spire Main",
-      "cards": 3,
-      "file": "decks/set1.png",
-      "offset": 23
-    },
-    {
-      "name": "Spire Bonus",
-      "cards": 15,
-      "file": "decks/set1.png",
-      "offset": 26
+      "primary_offset": 23,
+      "secondary_offset": 26
     },
     {
       "name": "Question",
-      "cards": 50,
+      "primary_cards": 50,
       "file": "decks/question.png",
-      "offset": 0
+      "primary_offset": 0,
+      "secondary_cards": 50,
+      "secondary_offset": 0
     }
   ]
 }

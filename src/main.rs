@@ -53,11 +53,20 @@ fn spawn_camera(mut commands: Commands) {
     commands.spawn_bundle(UiCameraBundle::default());
 }
 
-fn spawn_row(mut commands: Commands, mut decks: Res<Decks>) {
+fn spawn_row(mut commands: Commands, decks: Res<Decks>) {
     let mut x = -2.5 * CARD_W;
     let mut y = 2.5 * CARD_H;
     let deck_num = 4;
-    for i in 0..(decks.0.get(deck_num).unwrap().num_cards) {
+    let primary = false;
+    let deck;
+
+    if primary {
+        deck = &decks.0.get(deck_num).unwrap().primary;
+    } else {
+        deck = &decks.0.get(deck_num).unwrap().secondary;
+    }
+
+    for i in 0..(deck.cards) {
         if i % NUM_COLLUMNS == 0 {
             y -= CARD_H + 100.0;
             x = -2.5 * (CARD_W);
@@ -66,10 +75,11 @@ fn spawn_row(mut commands: Commands, mut decks: Res<Decks>) {
         //println!("index: {}, x: {}, y: {}", i, x, y);
         deck::spawn_card(
             &mut commands,
-            &mut decks,
+            &decks,
             deck_num,
             i,
             Vec3::new(x * SCALE, y * SCALE, 0.0),
+            true,
         );
     }
 }

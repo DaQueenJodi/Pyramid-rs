@@ -7,35 +7,44 @@ use crate::{CARD_H, CARD_W, SCALE};
 
 #[derive(Default, Component, Inspectable, Clone, Debug)]
 pub struct Deck {
-    pub cards: Handle<TextureAtlas>,
-    pub name: String,
-    pub num_cards: usize,
+    pub sheet: Handle<TextureAtlas>,
+    pub cards: usize,
     pub offset: usize,
 }
+#[derive(Clone)]
+pub struct DecksTogether {
+    pub primary: Deck,
+    pub secondary: Deck,
+    pub name: String,
+    pub back: Handle<Image>,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 struct DeckDataWrapper {
     decks: Vec<DeckData>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct DeckData {
+    primary_cards: usize,
+    primary_offset: usize,
+
     name: String,
-    cards: usize,
     file: String,
-    offset: usize,
+
+    secondary_cards: usize,
+    secondary_offset: usize,
 }
 
 pub struct DeckPlugin;
 
 impl Plugin for DeckPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(make_decks);
+        app.add_startup_system_to_stage(StartupStage::PreStartup, make_decks);
     }
 }
 
-pub struct Cards(pub Handle<Image>);
-
-pub struct Decks(pub Vec<Deck>);
+pub struct Decks(pub Vec<DecksTogether>);
 
 pub fn make_decks(
     mut commands: Commands,
@@ -43,17 +52,12 @@ pub fn make_decks(
     mut texture_ids: ResMut<crate::SpriteSheetIds>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
 ) {
-    let mut deck_vec: Vec<Deck> = vec![];
-
-    //std::env::set_current_dir(std::path::Path::new("assets/")).unwrap(); // to make the read_dir command more readable
-    // iterate through every file in assets/decks/ that ends in .json_data
+    let mut deck_vec: Vec<DecksTogether> = vec![];
     let file_path = Path::new("config/decks.json");
     let json_str = fs::read_to_string(file_path).unwrap();
     let json_data: DeckDataWrapper = serde_json::from_str(&json_str).unwrap();
-    for curr_json in json_data.decks {
-        let cards = curr_json.cards;
-        let texture_ids2 = &texture_ids.ids;
-        if !texture_ids2.contains_key(&curr_json.file) {
+    for curr_json in json_data.decks.clone() {
+        if !texture_ids.ids.contains_key(&curr_json.file.clone()) {
             // if file hasnt already made a handle
 
             let image: Handle<Image> = assets.load(Path::new(&curr_json.file));
@@ -66,24 +70,14 @@ pub fn make_decks(
                 Vec2::new(3.5, 5.0),
             );
             let atlas_handle = texture_atlases.add(atlas);
-            let temp_deck = Deck {
-                cards: atlas_handle.clone(),
-                name: curr_json.name,
-                num_cards: cards,
-                offset: curr_json.offset,
-            };
-            deck_vec.push(temp_deck);
-            println!("inserted: {:?}", curr_json.file);
+
+            deck_vec.push(gen_2_decks(curr_json.clone(), atlas_handle.clone()));
 
             texture_ids.ids.insert(curr_json.file, atlas_handle); // insert file path so it doesnt get duplicated for no reason
         } else {
-            let temp_deck = Deck {
-                cards: texture_ids.ids.get(&curr_json.file).unwrap().clone(),
-                name: curr_json.name,
-                num_cards: cards,
-                offset: curr_json.offset,
-            };
-            deck_vec.push(temp_deck);
+            let texture = texture_ids.ids.get(&curr_json.file).unwrap().clone();
+
+            deck_vec.push(gen_2_decks(curr_json, texture));
         }
     }
     commands.insert_resource(Decks(deck_vec));
@@ -94,17 +88,21 @@ pub fn spawn_card(
     deck_num: usize,
     index: usize,
     translation: Vec3,
+    primary: bool,
 ) -> Entity {
-    let deck = decks.0.get(deck_num).unwrap();
+    let deck;
+    if primary {
+        deck = &decks.0.get(deck_num).unwrap().primary;
+    } else {
+        deck = &decks.0.get(deck_num).unwrap().secondary;
+    }
     let mut sprite = TextureAtlasSprite::new(index + deck.offset);
-    // println!("{}", index + (deck.offset));
-    // println!("{:#?}", deck)  ;
     sprite.custom_size = Some(Vec2::new(CARD_H * SCALE, CARD_W * SCALE));
 
     commands
         .spawn_bundle(SpriteSheetBundle {
             sprite: sprite,
-            texture_atlas: deck.cards.clone(),
+            texture_atlas: deck.sheet.clone(),
             transform: Transform {
                 translation: translation,
                 scale: Vec3::new(SCALE, SCALE, SCALE), // scale the height and width
@@ -113,4 +111,30 @@ pub fn spawn_card(
             ..Default::default()
         })
         .id()
+}
+
+fn gen_2_decks(json: DeckData, texture: Handle<TextureAtlas>) -> DecksTogether {
+    let name = json.name;
+    let primary_cards = json.primary_cards;
+    let secondary_cards = json.secondary_cards;
+    let primary_offset = json.primary_offset;
+    let secondary_offset = json.secondary_offset;
+
+    let temp_deck1 = Deck {
+        sheet: texture.clone(),
+        cards: primary_cards,
+        offset: primary_offset,
+    };
+
+    let temp_deck2 = Deck {
+        sheet: texture,
+        cards: secondary_cards,
+        offset: secondary_offset,
+    };
+
+    DecksTogether {
+        primary: temp_deck1,
+        secondary: temp_deck2,
+        name: name,
+    }
 }
