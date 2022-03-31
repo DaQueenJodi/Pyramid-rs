@@ -26,11 +26,12 @@ struct DeckDataWrapper {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct DeckData {
-    primary_cards: usize,
-    primary_offset: usize,
+    primary_cards: usize,  // card count
+    primary_offset: usize, // offset in sprite sheet
 
-    name: String,
-    file: String,
+    name: String,      // name used in the deck selection
+    file: String,      // path to sprite sheet
+    back_file: String, // path to the back image
 
     secondary_cards: usize,
     secondary_offset: usize,
@@ -57,6 +58,11 @@ pub fn make_decks(
     let json_str = fs::read_to_string(file_path).unwrap();
     let json_data: DeckDataWrapper = serde_json::from_str(&json_str).unwrap();
     for curr_json in json_data.decks.clone() {
+        unsafe {
+            crate::NUM_DECKS += 1;
+        }
+        let back: Handle<Image> = assets.load(Path::new(&curr_json.back_file));
+
         if !texture_ids.ids.contains_key(&curr_json.file.clone()) {
             // if file hasnt already made a handle
 
@@ -71,13 +77,13 @@ pub fn make_decks(
             );
             let atlas_handle = texture_atlases.add(atlas);
 
-            deck_vec.push(gen_2_decks(curr_json.clone(), atlas_handle.clone()));
+            deck_vec.push(gen_2_decks(curr_json.clone(), atlas_handle.clone(), back));
 
             texture_ids.ids.insert(curr_json.file, atlas_handle); // insert file path so it doesnt get duplicated for no reason
         } else {
             let texture = texture_ids.ids.get(&curr_json.file).unwrap().clone();
 
-            deck_vec.push(gen_2_decks(curr_json, texture));
+            deck_vec.push(gen_2_decks(curr_json, texture, back));
         }
     }
     commands.insert_resource(Decks(deck_vec));
@@ -113,7 +119,11 @@ pub fn spawn_card(
         .id()
 }
 
-fn gen_2_decks(json: DeckData, texture: Handle<TextureAtlas>) -> DecksTogether {
+fn gen_2_decks(
+    json: DeckData,
+    texture: Handle<TextureAtlas>,
+    back: Handle<Image>,
+) -> DecksTogether {
     let name = json.name;
     let primary_cards = json.primary_cards;
     let secondary_cards = json.secondary_cards;
@@ -136,5 +146,6 @@ fn gen_2_decks(json: DeckData, texture: Handle<TextureAtlas>) -> DecksTogether {
         primary: temp_deck1,
         secondary: temp_deck2,
         name: name,
+        back: back,
     }
 }

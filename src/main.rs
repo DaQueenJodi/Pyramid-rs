@@ -18,6 +18,8 @@ pub const CARD_W: f32 = 580.0;
 pub const NUM_ROWS: usize = 4;
 pub const NUM_COLLUMNS: usize = 4;
 
+pub static mut NUM_DECKS: usize = 0;
+
 pub const SCALE: f32 = 0.7;
 
 pub struct SpriteSheetIds {

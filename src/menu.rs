@@ -1,10 +1,11 @@
 use bevy::prelude::*;
 
-use crate::{CARD_W, CARD_H, NUM_COLLUMNS, deck::{self, Decks}, SCALE};
+use crate::{deck::Decks, NUM_DECKS};
 
-const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
+const NORMAL_BUTTON: Color = Color::rgb(0.45, 0.45, 0.45);
 const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
+const CANT_PRESS_BUTTON: Color = crate::CLEAR;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum GameState {
@@ -36,7 +37,9 @@ impl Plugin for MenuPlugin {
             SystemSet::on_enter(GameState::Settings).with_system(setup_settings_menu),
         );
         app.add_system_set(
-            SystemSet::on_enter(GameState::DeckSelection).with_system(setup_deck_menu),
+            SystemSet::on_enter(GameState::DeckSelection)
+                .with_system(setup_deck_menu)
+                .with_system(spawn_row_backs),
         );
 
         app.add_system_set(
@@ -46,7 +49,9 @@ impl Plugin for MenuPlugin {
             SystemSet::on_update(GameState::Settings).with_system(handle_ui_buttons),
         );
         app.add_system_set(
-            SystemSet::on_update(GameState::DeckSelection).with_system(handle_ui_buttons),
+            SystemSet::on_update(GameState::DeckSelection)
+                .with_system(handle_ui_buttons)
+                .with_system(spawn_row_backs),
         );
         app.add_system_set(SystemSet::on_exit(GameState::MainMenu).with_system(close_menu));
         app.add_system_set(SystemSet::on_exit(GameState::Settings).with_system(close_menu));
@@ -62,6 +67,11 @@ pub enum MenuItems {
     Settings,
     HowToPlay,
     Quit,
+}
+// stores what button corresponds to what deck in DeckSelection
+#[derive(Component)]
+struct DeckNumber {
+    num: usize,
 }
 
 struct MenuData {
@@ -91,10 +101,18 @@ fn handle_ui_buttons(
                     MenuItems::Play => state.set(GameState::InGame).unwrap(),
                     MenuItems::DeckSelection => state.set(GameState::DeckSelection).unwrap(),
                     MenuItems::Quit => state.set(GameState::Quit).unwrap(),
-                    MenuItems::Right => curr_page.index += 1,
+                    MenuItems::Right => {
+                        if (curr_page.index + 1) * 8 > unsafe { NUM_DECKS } {
+                            *color = CANT_PRESS_BUTTON.into();
+                        } else {
+                            curr_page.index += 1;
+                        }
+                    }
                     MenuItems::Left => {
                         if curr_page.index > 0 {
                             curr_page.index -= 1
+                        } else {
+                            *color = CANT_PRESS_BUTTON.into();
                         }
                     } // make sure you dont underflow the index
                 }
@@ -107,6 +125,7 @@ fn handle_ui_buttons(
                 *color = NORMAL_BUTTON.into();
             }
         }
+        if *state.current() == GameState::DeckSelection {}
     }
 }
 
@@ -118,9 +137,12 @@ fn setup_main_menu(
     let size = Vec2::new(250.0, 100.0);
     let font: Handle<Font> = asset_server.load("fonts/Roboto.ttf");
 
-    menu_data
-        .button_entity
-        .push(spawn_main_text(&mut commands, "Main Menu", font.clone(), 5.0));
+    menu_data.button_entity.push(spawn_main_text(
+        &mut commands,
+        "Main Menu",
+        font.clone(),
+        5.0,
+    ));
     menu_data.button_entity.push(spawn_button(
         &mut commands,
         font.clone(),
@@ -278,11 +300,62 @@ fn close_menu(mut commands: Commands, mut menu_data: ResMut<MenuData>) {
     menu_data.button_entity.clear();
 }
 // spawns every card's back as a button
-fn spawn_row_backs(mut commands: Commands, decks: Res<Decks>, page: Res<CurrPage>) {
-    
-    let image = 
+fn spawn_row_backs(
+    mut commands: Commands,
+    decks: Res<Decks>,
+    page: Res<CurrPage>,
+    mut menu_data: ResMut<MenuData>,
+) {
+    // exit if the resource wasnt just changed
+    if !page.is_changed() {
+        return;
+    }
 
-    commands.spawn_bundle(ButtonBundle {
-        image: 
+    let mut x_mul = 1.0;
+    let mut y_mul = 1.0;
+    let how_many;
+
+    unsafe {
+        if NUM_DECKS < 8 {
+            how_many = NUM_DECKS;
+        } else {
+            how_many = 8;
+        }
+    }
+
+    for i in page.index..(page.index + how_many) {
+        if i != 0 && i % 4 == 0 {
+            y_mul += 1.0;
+        }
+
+        // i = current deck
+        //let i = page.index;
+        println!("{}", i);
+        let back = &decks.0.get(i).unwrap().back;
+        x_mul += 1.0;
+        let image = UiImage::from(back.clone());
+
+        menu_data.button_entity.push(
+            commands
+                .spawn_bundle(ButtonBundle {
+                    style: Style {
+                        size: Size::new(Val::Px(2100.0 * 0.1), Val::Px(3000.0 * 0.1)),
+                        position_type: PositionType::Absolute,
+                        position: Rect {
+                            bottom: Val::Px(500.0 / y_mul),
+                            left: Val::Px(300.0 * x_mul),
+                            ..Default::default()
+                        },
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        ..Default::default()
+                    },
+                    image: image,
+                    //color: NORMAL_BUTTON.into(),
+                    ..Default::default()
+                })
+                .insert(DeckNumber { num: i })
+                .id(),
+        );
     }
 }

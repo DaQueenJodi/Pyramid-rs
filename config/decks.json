@@ -6,6 +6,7 @@
       "primary_cards": 11,
       "secondary_cards": 14,
       "file": "decks/set1.png",
+      "back_file": "backs/isaac.png",
       "primary_offset": 0,
       "secondary_offset": 10
     },
@@ -14,16 +15,19 @@
       "primary_cards": 3,
       "secondary_cards": 15,
       "file": "decks/set1.png",
+      "back_file": "backs/spire.png",
       "primary_offset": 23,
       "secondary_offset": 26
     },
     {
       "name": "Question",
       "primary_cards": 50,
-      "file": "decks/question.png",
+      "file": "decks/question_mark.png",
+      "back_file": "backs/question_mark.png",
       "primary_offset": 0,
       "secondary_cards": 50,
       "secondary_offset": 0
     }
+    
   ]
 }
