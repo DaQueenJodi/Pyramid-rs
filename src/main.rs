@@ -5,6 +5,7 @@ pub mod deck;
 use deck::*;
 pub mod debug;
 use debug::*;
+pub mod menu;
 
 pub const CLEAR: Color = Color::rgb(0.1, 0.1, 0.1);
 pub const RESOLUTION: f32 = 16.0 / 9.0;
@@ -16,15 +17,6 @@ pub const NUM_ROWS: usize = 4;
 pub const NUM_COLLUMNS: usize = 4;
 
 pub const SCALE: f32 = 0.7;
-
-
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
-enum GameState {
-    MainMenu,
-    InGame,
-    Paused,
-}
-
 
 fn main() {
     App::new()
@@ -63,11 +55,11 @@ fn spawn_row(mut commands: Commands, mut decks: Res<Decks>) {
         deck::spawn_card(
             &mut commands,
             &mut decks,
-            0,
+            4,
             i,
             Vec3::new(x * SCALE, y * SCALE, 0.0),
         );
     }
-   
+
     // deck::spawn_card(&mut commands, &decks, 0, 9, Vec3::new(0.0,0.0,0.0));
 }

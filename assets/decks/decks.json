@@ -10,24 +10,31 @@
     },
     {
       "name": "Isaac Bonus",
-      "collumns": 10,
-      "cards": 65,
+      "collumns": 11,
+      "cards": 14,
       "file": "decks/set1.png",
       "offset": 11
     },
     {
       "name": "Spire Main",
-      "collumns": 1,
+      "collumns": 11,
       "cards": 3,
       "file": "decks/set1.png",
-      "offset": 75
+      "offset": 25
     },
     {
       "name": "Spire Bonus",
-      "collumns": 1,
+      "collumns": 11,
       "cards": 15,
       "file": "decks/set1.png",
-      "offset": 78
+      "offset": 1
+    },
+    {
+      "name": "Question",
+      "collumns": 11,
+      "cards": 71,
+      "file": "decks/question.png",
+      "offset": 1
     }
   ]
 }

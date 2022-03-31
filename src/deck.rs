@@ -5,7 +5,7 @@ use std::{fs, path::Path};
 
 use crate::{CARD_H, CARD_W, SCALE};
 
-#[derive(Default, Component, Inspectable, Clone)]
+#[derive(Default, Component, Inspectable, Clone, Debug)]
 pub struct Deck {
     pub cards: Handle<TextureAtlas>,
     pub name: String,
@@ -53,7 +53,7 @@ pub fn make_decks(
         // iterate through every file in assets/decks/ that ends in .json_data
         let file_path = path.unwrap().path(); // turn Path into file path
         if file_path.to_str().unwrap().ends_with(".json") {
-            println!("file name: {:#?}", file_path);
+            //println!("file name: {:#?}", file_path);
 
             let json_str = fs::read_to_string(&file_path).unwrap();
             let json_data: DeckDataWrapper = serde_json::from_str(&json_str).unwrap();
@@ -66,7 +66,7 @@ pub fn make_decks(
 
                 let atlas = TextureAtlas::from_grid_with_padding(
                     image,
-                    Vec2::new(CARD_H, CARD_W), // the size of the cards
+                    Vec2::new(CARD_H * SCALE, CARD_W * SCALE), // the size of the cards
                     collumns,
                     rows,
                     Vec2::new(3.5, 5.0),
@@ -95,7 +95,9 @@ pub fn spawn_card(
     translation: Vec3,
 ) -> Entity {
     let deck = decks.0.get(deck_num).unwrap();
-    let mut sprite = TextureAtlasSprite::new(index + (deck.offset));
+    let mut sprite = TextureAtlasSprite::new(index + (deck.offset - 1));
+    println!("{}", index + (deck.offset - 1));
+    println!("{:#?}", deck);
     sprite.custom_size = Some(Vec2::new(CARD_H * SCALE, CARD_W * SCALE));
 
     commands
