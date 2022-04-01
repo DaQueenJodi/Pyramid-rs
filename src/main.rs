@@ -1,5 +1,5 @@
 #![allow(clippy::redundant_field_names)]
-use bevy::{asset::HandleId, prelude::*};
+use bevy::{prelude::*, window::WindowMode};
 use std::collections::HashMap;
 pub mod deck;
 use deck::*;
@@ -9,21 +9,9 @@ pub mod states_and_ui;
 use states_and_ui::*;
 pub mod handle_json;
 use handle_json::*;
-
-pub const CLEAR: Color = Color::rgb(0.1, 0.1, 0.1);
-pub const RESOLUTION: f32 = 16.0 / 9.0;
-
-pub const CARD_H: f32 = 406.0;
-pub const CARD_W: f32 = 580.0;
-
-pub const NUM_ROWS: usize = 4;
-pub const NUM_COLLUMNS: usize = 4;
-
-pub static mut NUM_DECKS: usize = 0;
-
-pub const SCALE: f32 = 0.7;
-
-pub static mut DECKS_PER_GAME: usize = 5;
+pub mod button_input;
+pub mod constants;
+use constants::*;
 
 pub struct SpriteSheetIds {
     pub ids: HashMap<String, Handle<TextureAtlas>>,
@@ -36,11 +24,12 @@ fn main() {
         })
         .insert_resource(ClearColor(CLEAR))
         .insert_resource(WindowDescriptor {
-            width: 1920.0,
-            height: 1280.0,
+            width: 960.0,
+            height: 640.0,
             title: "*notices your bulgy wulgy* uwu".to_owned(),
             vsync: true,
             resizable: false,
+            mode: WindowMode::BorderlessFullscreen,
             ..Default::default()
         })
         .add_state(GameState::MainMenu)

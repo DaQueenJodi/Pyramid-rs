@@ -1,19 +1,9 @@
-use std::{fs::File, path::Path};
-
-use crate::handle_json::*;
+use crate::{button_input::*, constants::*, handle_json::*};
 use bevy::prelude::*;
 use bevy_inspector_egui::Inspectable;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    deck::{Deck, Decks},
-    DECKS_PER_GAME, NUM_DECKS,
-};
-
-const NORMAL_BUTTON: Color = Color::rgb(0.45, 0.45, 0.45);
-const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
-const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
-const CANT_PRESS_BUTTON: Color = crate::CLEAR;
+use crate::DECKS_PER_GAME;
 
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
@@ -39,7 +29,7 @@ impl Plugin for MenuPlugin {
         .add_system_set(
             SystemSet::on_update(GameState::DeckSelection)
                 .with_system(handle_ui_buttons)
-                .with_system(spawn_row_backs),
+                .with_system(update_deck_select),
         )
         .add_system_set(
             SystemSet::on_update(GameState::PreGame)
@@ -56,6 +46,7 @@ impl Plugin for MenuPlugin {
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum GameState {
     MainMenu,
+    HowTo,
     PreGame,
     InGame,
     Quit,
@@ -64,7 +55,7 @@ pub enum GameState {
     Right,
 }
 #[derive(Component)]
-struct MainMenu;
+pub struct MainMenu;
 #[derive(Serialize, Deserialize)]
 
 pub struct MenuPlugin;
@@ -88,89 +79,14 @@ struct MenuData {
     button_entity: Vec<Entity>,
 }
 
-struct CurrPage {
-    index: usize,
-    shown: Vec<Entity>, // stores the current page's deck entities
-}
-
-fn handle_choosing_cards(
-    mut enabled_json: ResMut<EnabledJson>,
-    mut interaction_query: Query<(&Interaction, &DeckNumber, &UiColor), (With<Button>)>,
-) {
-    for (interaction, deck_num, color) in interaction_query.iter_mut() {
-        if interaction == &Interaction::Clicked {
-            if enabled_json.enabled.contains(&deck_num.num) {
-                // if its enabled, disable it
-                disable_deck(deck_num.num);
-                println!("disabled: {:?}", enabled_json);
-                enabled_json.update();
-                println!("disabled: {:?}", enabled_json);
-            } else {
-                // if its disabled, enable it
-                enable_deck(deck_num.num);
-                println!("enabled: {:?}", enabled_json);
-                enabled_json.update();
-                println!("enabled: {:?}", enabled_json);
-            }
-        }
-    }
-}
-fn handle_ui_buttons(
-    mut state: ResMut<State<GameState>>,
-    mut curr_page: ResMut<CurrPage>, // current index in deck selection
-    mut interaction_query: Query<
-        (&Interaction, &mut UiColor, &MenuItems),
-        (Changed<Interaction>, With<Button>),
-    >,
-) {
-    for (interaction, mut color, menu_items) in interaction_query.iter_mut() {
-        let mut num_decks = 0;
-
-        match state.current() {
-            GameState::DeckSelection => num_decks = unsafe { NUM_DECKS }, // total decks
-            GameState::PreGame => num_decks = unsafe { DECKS_PER_GAME },  // enabled decks
-            _ => {}
-        }
-
-        match *interaction {
-            Interaction::Clicked => {
-                *color = PRESSED_BUTTON.into();
-
-                match menu_items {
-                    MenuItems::HowToPlay => display_how_to(),
-                    MenuItems::Play => state.set(GameState::PreGame).unwrap(),
-                    MenuItems::DeckSelection => state.set(GameState::DeckSelection).unwrap(),
-                    MenuItems::Quit => state.set(GameState::Quit).unwrap(),
-                    MenuItems::Right => {
-                        if (curr_page.index + 1) * 8 >  num_decks  {
-                            *color = CANT_PRESS_BUTTON.into();
-                        } else {
-                            curr_page.index += 1;
-                        }
-                    }
-                    MenuItems::Left => {
-                        if curr_page.index > 0 {
-                            curr_page.index -= 1
-                        } else {
-                            *color = CANT_PRESS_BUTTON.into();
-                        }
-                    } // make sure you dont underflow the index
-                }
-            }
-
-            Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
-            }
-            Interaction::None => {
-                *color = NORMAL_BUTTON.into();
-            }
-        }
-    }
+pub struct CurrPage {
+    pub index: usize,
+    pub shown: Vec<Entity>, // stores the current page's deck entities
 }
 
 fn setup_main_menu(
     mut commands: Commands,
-    mut asset_server: ResMut<AssetServer>,
+    asset_server: Res<AssetServer>,
     mut menu_data: ResMut<MenuData>,
 ) {
     let size = Vec2::new(250.0, 100.0);
@@ -249,9 +165,9 @@ fn setup_deck_menu(
     ));
 }
 
-fn display_how_to() {}
+pub fn display_how_to() {}
 
-fn spawn_button(
+pub fn spawn_button(
     commands: &mut Commands,
     font: Handle<Font>,
     text: &str,
@@ -296,7 +212,12 @@ fn spawn_button(
         .id()
 }
 
-fn spawn_main_text(commands: &mut Commands, text: &str, font: Handle<Font>, offset: f32) -> Entity {
+pub fn spawn_main_text(
+    commands: &mut Commands,
+    text: &str,
+    font: Handle<Font>,
+    offset: f32,
+) -> Entity {
     commands
         .spawn_bundle(TextBundle {
             style: Style {
@@ -333,10 +254,11 @@ fn close_menu(mut commands: Commands, mut menu_data: ResMut<MenuData>) {
     menu_data.button_entity.clear();
 }
 // spawns every card's back as a button
-fn spawn_row_backs(
+fn update_deck_select(
     mut commands: Commands,
     decks: Res<crate::deck::DeckBacks>,
     mut page: ResMut<CurrPage>,
+    enabled_json: Res<EnabledJson>,
 ) {
     let index = page.index;
 
@@ -351,7 +273,7 @@ fn spawn_row_backs(
     page.shown.clear();
 
     let num_decks = unsafe { crate::NUM_DECKS };
-    let mut how_many = 0;
+    let how_many;
     if num_decks - (page.index * 8) < 8 {
         how_many = num_decks - (page.index * 8);
     } else {
@@ -359,6 +281,11 @@ fn spawn_row_backs(
     }
 
     for i in index..(index + how_many) {
+        // set deck color to normal, otherwise make it disabled
+        let mut color = UiColor::default();
+        if enabled_json.check_disabled(&(i - index)) {
+            color = DISABLE_DECK.into();
+        }
         let deck_num = (index * 7) + i;
         let back = decks.backs.get(deck_num).unwrap();
         page.shown.push(spawn_back_grid(
@@ -366,6 +293,7 @@ fn spawn_row_backs(
             back.clone(),
             i - index,
             deck_num,
+            color,
         ));
     }
 }
@@ -375,7 +303,7 @@ fn setup_pre_game(
     asset_server: Res<AssetServer>,
     mut page: ResMut<CurrPage>,
     mut menu_data: ResMut<MenuData>,
-    mut enabled_json: ResMut<EnabledJson>
+    mut enabled_json: ResMut<EnabledJson>,
 ) {
     enabled_json.update(); // make sure that the whitelist is set properly
 
@@ -431,7 +359,7 @@ fn update_pre_game(
 
     let num_decks = unsafe { DECKS_PER_GAME };
 
-    let mut how_many = 0;
+    let how_many;
     if num_decks - (page.index * 8) < 8 {
         how_many = num_decks - (page.index * 8);
     } else {
@@ -457,17 +385,18 @@ fn update_pre_game(
             back.clone(),
             i - index,
             deck_num,
+            UiColor::default(),
         ));
     }
 }
 
-fn spawn_back_grid(
+pub fn spawn_back_grid(
     commands: &mut Commands,
     image: Handle<Image>,
     index: usize,
     deck_num: usize,
+    color: UiColor,
 ) -> Entity {
-    println!("{}", index);
     let mut mulx = 1.0;
     let mut muly = 1.0;
     for i in 0..=index {
@@ -495,7 +424,7 @@ fn spawn_back_grid(
                 ..Default::default()
             },
             image: image,
-            //color: NORMAL_BUTTON.into(),
+            color: color,
             ..Default::default()
         })
         .insert(DeckNumber { num: deck_num })

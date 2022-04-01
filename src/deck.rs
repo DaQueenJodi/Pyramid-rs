@@ -63,7 +63,6 @@ pub fn make_decks(
         unsafe {
             crate::NUM_DECKS += 1;
         }
-        let back: Handle<Image> = assets.load(Path::new(&curr_json.back_file));
         // if file hasnt already made a handle
 
         let image: Handle<Image> = assets.load(Path::new(&curr_json.file));
@@ -77,7 +76,7 @@ pub fn make_decks(
         );
         let atlas_handle = texture_atlases.add(atlas);
 
-        deck_vec.push(gen_2_decks(curr_json.clone(), atlas_handle.clone(), back));
+        deck_vec.push(gen_2_decks(curr_json.clone(), atlas_handle.clone()));
     }
     commands.insert_resource(Decks(deck_vec));
 }
@@ -112,11 +111,7 @@ pub fn spawn_card(
         .id()
 }
 
-fn gen_2_decks(
-    json: DeckData,
-    texture: Handle<TextureAtlas>,
-    back: Handle<Image>,
-) -> DecksTogether {
+fn gen_2_decks(json: DeckData, texture: Handle<TextureAtlas>) -> DecksTogether {
     let name = json.name;
     let primary_cards = json.primary_cards;
     let secondary_cards = json.secondary_cards;
@@ -141,8 +136,7 @@ fn gen_2_decks(
     }
 }
 
-fn make_backs(mut commands: Commands, assets: Res<AssetServer>, mut deck_backs: ResMut<DeckBacks>) {
-    let mut deck_vec: Vec<DecksTogether> = Vec::new();
+fn make_backs(assets: Res<AssetServer>, mut deck_backs: ResMut<DeckBacks>) {
     let file_path = Path::new("config/decks.json");
     let json_str = fs::read_to_string(file_path).unwrap();
     let json_data: DeckDataWrapper = serde_json::from_str(&json_str).unwrap();
