@@ -5,8 +5,8 @@ pub mod deck;
 use deck::*;
 pub mod debug;
 use debug::*;
-pub mod menu;
-use menu::*;
+pub mod states_and_ui;
+use states_and_ui::*;
 
 pub const CLEAR: Color = Color::rgb(0.1, 0.1, 0.1);
 pub const RESOLUTION: f32 = 16.0 / 9.0;

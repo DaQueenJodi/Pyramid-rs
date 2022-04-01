@@ -16,7 +16,11 @@ pub struct DecksTogether {
     pub primary: Deck,
     pub secondary: Deck,
     pub name: String,
-    pub back: Handle<Image>,
+}
+
+#[derive(Default, Clone)]
+pub struct DeckBacks {
+    pub backs: Vec<Handle<Image>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -38,7 +42,8 @@ pub struct DeckPlugin;
 
 impl Plugin for DeckPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system_to_stage(StartupStage::PreStartup, make_decks);
+        app.add_startup_system_to_stage(StartupStage::PreStartup, make_backs)
+            .insert_resource(DeckBacks { backs: Vec::new() });
     }
 }
 
@@ -47,14 +52,16 @@ pub struct Decks(pub Vec<DecksTogether>);
 pub fn make_decks(
     mut commands: Commands,
     assets: Res<AssetServer>,
-    mut texture_ids: ResMut<crate::SpriteSheetIds>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
 ) {
-    let mut deck_vec: Vec<DecksTogether> = vec![];
+    let mut deck_vec: Vec<DecksTogether> = Vec::new();
     let file_path = Path::new("config/decks.json");
     let json_str = fs::read_to_string(file_path).unwrap();
     let json_data: DeckDataWrapper = serde_json::from_str(&json_str).unwrap();
+
+
     for curr_json in json_data.decks.clone() {
+        
         unsafe {
             crate::NUM_DECKS += 1;
         }
@@ -133,6 +140,20 @@ fn gen_2_decks(
         primary: temp_deck1,
         secondary: temp_deck2,
         name: name,
-        back: back,
+    }
+}
+
+fn make_backs(mut commands: Commands, assets: Res<AssetServer>, mut deck_backs: ResMut<DeckBacks>) {
+    let mut deck_vec: Vec<DecksTogether> = Vec::new();
+    let file_path = Path::new("config/decks.json");
+    let json_str = fs::read_to_string(file_path).unwrap();
+    let json_data: DeckDataWrapper = serde_json::from_str(&json_str).unwrap();
+    for curr_json in json_data.decks.clone() {
+        unsafe {
+            crate::NUM_DECKS += 1;
+        }
+        let back: Handle<Image> = assets.load(Path::new(&curr_json.back_file));
+
+        deck_backs.backs.push(back);
     }
 }

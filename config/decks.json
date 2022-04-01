@@ -6,7 +6,6 @@
       "secondary_cards": 14,
       "file": "decks/binding_of_isaac.png",
       "back_file": "backs/binding_of_isaac.png"
-     
     },
     {
       "name": "The Binding of Isaac Greed Mode",
@@ -34,7 +33,7 @@
       "primary_cards": 6,
       "secondary_cards": 14,
       "file": "decks/dead_cells.png",
-      "back_file": "backs/dead_cells"
+      "back_file": "backs/dead_cells.png"
     },
     {
       "name": "Demon Crawl",
@@ -61,7 +60,7 @@
       "name": "Stardew Valley",
       "primary_cards": 11,
       "secondary_cards": 10,
-      "file": "decks/bloons_td6.png",
+      "file": "decks/stardew_valley.png",
       "back_file": "backs/stardew_valley.png"
     }
   ]
