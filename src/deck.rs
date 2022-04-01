@@ -59,9 +59,7 @@ pub fn make_decks(
     let json_str = fs::read_to_string(file_path).unwrap();
     let json_data: DeckDataWrapper = serde_json::from_str(&json_str).unwrap();
 
-
     for curr_json in json_data.decks.clone() {
-        
         unsafe {
             crate::NUM_DECKS += 1;
         }

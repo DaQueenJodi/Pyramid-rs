@@ -1,10 +1,14 @@
 use std::{fs::File, path::Path};
 
+use crate::handle_json::*;
 use bevy::prelude::*;
 use bevy_inspector_egui::Inspectable;
 use serde::{Deserialize, Serialize};
 
-use crate::{deck::{Decks, Deck}, NUM_DECKS, DECKS_PER_GAME};
+use crate::{
+    deck::{Deck, Decks},
+    DECKS_PER_GAME, NUM_DECKS,
+};
 
 const NORMAL_BUTTON: Color = Color::rgb(0.45, 0.45, 0.45);
 const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
@@ -49,19 +53,6 @@ impl Plugin for MenuPlugin {
     }
 }
 
-
-pub struct CurrentRun {
-    
-    decks: Vec<Deck>,
-    score: usize,
-}
-
-pub enum JsonType {
-    CurrentRun,
-    Decks,
-    Enabled,
-}
-
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum GameState {
     MainMenu,
@@ -75,62 +66,6 @@ pub enum GameState {
 #[derive(Component)]
 struct MainMenu;
 #[derive(Serialize, Deserialize)]
-struct EnabledJsonData {
-    enabled: Vec<usize>,
-}
-
-pub static mut ENABLED_JSON: Vec<usize> = Vec::new();
-
-pub fn check_json(num: usize) -> bool {
-    unsafe { ENABLED_JSON.contains(&num) }
-}
-
-pub fn remove_from_json(num: usize) {
-    // read from file
-    let file_path = Path::new("config/enabled_decks.json");
-    let reader = File::open(file_path).unwrap();
-    let mut json_data: EnabledJsonData =
-        serde_json::from_reader(std::io::BufReader::new(reader)).unwrap();
-
-    // taken from https://stackoverflow.com/a/26243276/17942630
-    let i = json_data.enabled.iter().position(|x| *x == num).unwrap();
-    json_data.enabled.remove(i);
-
-    // write back to file
-    let writer = File::create(file_path).unwrap();
-    serde_json::to_writer_pretty(writer, &json_data).unwrap();
-}
-pub fn add_to_json(num: usize) {
-    let file_path = Path::new("config/enabled_decks.json");
-    let reader = File::open(file_path).unwrap(); // open file in read only mode
-    let mut json_data: EnabledJsonData =
-        serde_json::from_reader(std::io::BufReader::new(reader)).unwrap();
-
-    json_data.enabled.push(num);
-
-    let writer = File::create(file_path).unwrap(); // open file in writable mode
-    serde_json::to_writer_pretty(writer, &json_data).unwrap();
-}
-
-pub fn update_json(json_type: JsonType) {
-
-    match json_type {
-        JsonType::Enabled => {
-            let file_path = Path::new("config/enabled_decks.json");
-            let reader = File::open(file_path).unwrap();
-            let json_data: EnabledJsonData = serde_json::from_reader(reader).unwrap();
-            unsafe { ENABLED_JSON = json_data.enabled }
-        }
-        JsonType::CurrentRun => {
-            let file_path = Path::new("config/current_run.json");
-            let reader = File::open(file_path).unwrap();
-            let json_data: EnabledJsonData = serde_json::from_reader(reader).unwrap();
-            unsafe { 
-                CURRENT_RUN_JSON = json_data; 
-            }
-        }
-    }
-}
 
 pub struct MenuPlugin;
 
@@ -159,16 +94,23 @@ struct CurrPage {
 }
 
 fn handle_choosing_cards(
+    mut enabled_json: ResMut<EnabledJson>,
     mut interaction_query: Query<(&Interaction, &DeckNumber, &UiColor), (With<Button>)>,
 ) {
     for (interaction, deck_num, color) in interaction_query.iter_mut() {
         if interaction == &Interaction::Clicked {
-            if check_json(deck_num.num) {
-                remove_from_json(deck_num.num);
-                update_json();
+            if enabled_json.enabled.contains(&deck_num.num) {
+                // if its enabled, disable it
+                disable_deck(deck_num.num);
+                println!("disabled: {:?}", enabled_json);
+                enabled_json.update();
+                println!("disabled: {:?}", enabled_json);
             } else {
-                add_to_json(deck_num.num);
-                update_json();
+                // if its disabled, enable it
+                enable_deck(deck_num.num);
+                println!("enabled: {:?}", enabled_json);
+                enabled_json.update();
+                println!("enabled: {:?}", enabled_json);
             }
         }
     }
@@ -182,6 +124,14 @@ fn handle_ui_buttons(
     >,
 ) {
     for (interaction, mut color, menu_items) in interaction_query.iter_mut() {
+        let mut num_decks = 0;
+
+        match state.current() {
+            GameState::DeckSelection => num_decks = unsafe { NUM_DECKS }, // total decks
+            GameState::PreGame => num_decks = unsafe { DECKS_PER_GAME },  // enabled decks
+            _ => {}
+        }
+
         match *interaction {
             Interaction::Clicked => {
                 *color = PRESSED_BUTTON.into();
@@ -192,7 +142,7 @@ fn handle_ui_buttons(
                     MenuItems::DeckSelection => state.set(GameState::DeckSelection).unwrap(),
                     MenuItems::Quit => state.set(GameState::Quit).unwrap(),
                     MenuItems::Right => {
-                        if (curr_page.index + 1) * 8 > unsafe { NUM_DECKS } {
+                        if (curr_page.index + 1) * 8 >  num_decks  {
                             *color = CANT_PRESS_BUTTON.into();
                         } else {
                             curr_page.index += 1;
@@ -266,7 +216,7 @@ fn setup_main_menu(
 
 fn setup_deck_menu(
     mut commands: Commands,
-    mut asset_server: ResMut<AssetServer>,
+    asset_server: Res<AssetServer>,
     mut menu_data: ResMut<MenuData>,
 ) {
     let font: Handle<Font> = asset_server.load("fonts/Roboto.ttf");
@@ -425,11 +375,11 @@ fn setup_pre_game(
     asset_server: Res<AssetServer>,
     mut page: ResMut<CurrPage>,
     mut menu_data: ResMut<MenuData>,
+    mut enabled_json: ResMut<EnabledJson>
 ) {
-    update_json(); // make sure that the whitelist is set properly
+    enabled_json.update(); // make sure that the whitelist is set properly
 
-    unsafe { DECKS_PER_GAME = ENABLED_JSON.len() };
-
+    unsafe { DECKS_PER_GAME = enabled_json.enabled.len() };
 
     let size = Vec2::new(250.0, 100.0);
 

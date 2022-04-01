@@ -7,6 +7,8 @@ pub mod debug;
 use debug::*;
 pub mod states_and_ui;
 use states_and_ui::*;
+pub mod handle_json;
+use handle_json::*;
 
 pub const CLEAR: Color = Color::rgb(0.1, 0.1, 0.1);
 pub const RESOLUTION: f32 = 16.0 / 9.0;
@@ -46,6 +48,7 @@ fn main() {
         .add_plugin(DebugPlugin)
         .add_plugin(DeckPlugin)
         .add_plugin(MenuPlugin)
+        .add_plugin(JsonPlugin)
         .add_startup_system(spawn_camera)
         // .add_system_set(SystemSet::on_enter(GameState::InGame).with_system(setup_game))
         .run();
