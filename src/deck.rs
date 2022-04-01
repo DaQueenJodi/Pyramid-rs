@@ -26,17 +26,14 @@ struct DeckDataWrapper {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct DeckData {
-    primary_cards: usize,  // card count
-    primary_offset: usize, // offset in sprite sheet
+    primary_cards: usize, // card count
 
     name: String,      // name used in the deck selection
     file: String,      // path to sprite sheet
     back_file: String, // path to the back image
 
     secondary_cards: usize,
-    secondary_offset: usize,
 }
-
 pub struct DeckPlugin;
 
 impl Plugin for DeckPlugin {
@@ -62,29 +59,20 @@ pub fn make_decks(
             crate::NUM_DECKS += 1;
         }
         let back: Handle<Image> = assets.load(Path::new(&curr_json.back_file));
+        // if file hasnt already made a handle
 
-        if !texture_ids.ids.contains_key(&curr_json.file.clone()) {
-            // if file hasnt already made a handle
+        let image: Handle<Image> = assets.load(Path::new(&curr_json.file));
 
-            let image: Handle<Image> = assets.load(Path::new(&curr_json.file));
+        let atlas = TextureAtlas::from_grid_with_padding(
+            image,
+            Vec2::new(CARD_H, CARD_W), // the size of the cards
+            10,
+            5,
+            Vec2::new(3.5, 5.0),
+        );
+        let atlas_handle = texture_atlases.add(atlas);
 
-            let atlas = TextureAtlas::from_grid_with_padding(
-                image,
-                Vec2::new(CARD_H, CARD_W), // the size of the cards
-                10,
-                5,
-                Vec2::new(3.5, 5.0),
-            );
-            let atlas_handle = texture_atlases.add(atlas);
-
-            deck_vec.push(gen_2_decks(curr_json.clone(), atlas_handle.clone(), back));
-
-            texture_ids.ids.insert(curr_json.file, atlas_handle); // insert file path so it doesnt get duplicated for no reason
-        } else {
-            let texture = texture_ids.ids.get(&curr_json.file).unwrap().clone();
-
-            deck_vec.push(gen_2_decks(curr_json, texture, back));
-        }
+        deck_vec.push(gen_2_decks(curr_json.clone(), atlas_handle.clone(), back));
     }
     commands.insert_resource(Decks(deck_vec));
 }
@@ -127,13 +115,12 @@ fn gen_2_decks(
     let name = json.name;
     let primary_cards = json.primary_cards;
     let secondary_cards = json.secondary_cards;
-    let primary_offset = json.primary_offset;
-    let secondary_offset = json.secondary_offset;
+    let secondary_offset = json.primary_cards; // the secondaries will always be right after the primaries
 
     let temp_deck1 = Deck {
         sheet: texture.clone(),
         cards: primary_cards,
-        offset: primary_offset,
+        offset: 0, // primary offset is always 0
     };
 
     let temp_deck2 = Deck {

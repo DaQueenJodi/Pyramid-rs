@@ -1,33 +1,68 @@
-
 {
   "decks": [
     {
       "name": "The Binding of Isaac",
       "primary_cards": 11,
       "secondary_cards": 14,
-      "file": "decks/set1.png",
-      "back_file": "backs/isaac.png",
-      "primary_offset": 0,
-      "secondary_offset": 10
+      "file": "decks/binding_of_isaac.png",
+      "back_file": "backs/binding_of_isaac.png"
+     
     },
     {
-      "name": "Slay the Spire",
-      "primary_cards": 3,
-      "secondary_cards": 15,
-      "file": "decks/set1.png",
-      "back_file": "backs/spire.png",
-      "primary_offset": 23,
-      "secondary_offset": 26
+      "name": "The Binding of Isaac Greed Mode",
+      "primary_cards": 11,
+      "secondary_cards": 10,
+      "file": "decks/binding_of_isaac_greedmode.png",
+      "back_file": "backs/binding_of_isaac_greedmode.png"
     },
     {
-      "name": "Question",
-      "primary_cards": 50,
-      "file": "decks/question_mark.png",
-      "back_file": "backs/question_mark.png",
-      "primary_offset": 0,
-      "secondary_cards": 50,
-      "secondary_offset": 0
+      "name": "Bloons TD 6",
+      "primary_cards": 11,
+      "secondary_cards": 10,
+      "file": "decks/bloons_td6.png",
+      "back_file": "backs/bloons_td6.png"
+    },
+    {
+      "name": "Celeste",
+      "primary_cards": 5,
+      "secondary_cards": 7,
+      "file": "decks/celeste.png",
+      "back_file": "backs/celeste.png"
+    },
+    {
+      "name": "Dead Cells",
+      "primary_cards": 6,
+      "secondary_cards": 14,
+      "file": "decks/dead_cells.png",
+      "back_file": "backs/dead_cells"
+    },
+    {
+      "name": "Demon Crawl",
+      "primary_cards": 6,
+      "secondary_cards": 9,
+      "file": "decks/demon_crawl.png",
+      "back_file": "backs/demon_crawl.png"
+    },
+    {
+      "name": "Slay The Spire",
+      "primary_cards": 4,
+      "secondary_cards": 16,
+      "back_file": "backs/slay_the_spire.png",
+      "file": "decks/slay_the_spire.png"
+    },
+    {
+      "name": "Nuclear Throne",
+      "primary_cards": 11,
+      "secondary_cards": 10,
+      "file": "decks/nuclear_throne.png",
+      "back_file": "backs/nuclear_throne.png"
+    },
+    {
+      "name": "Stardew Valley",
+      "primary_cards": 11,
+      "secondary_cards": 10,
+      "file": "decks/bloons_td6.png",
+      "back_file": "backs/stardew_valley.png"
     }
-    
   ]
 }

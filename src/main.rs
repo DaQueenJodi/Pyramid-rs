@@ -1,8 +1,6 @@
 #![allow(clippy::redundant_field_names)]
 use bevy::{asset::HandleId, prelude::*};
 use std::collections::HashMap;
-#[macro_use]
-extern crate lazy_static;
 pub mod deck;
 use deck::*;
 pub mod debug;
@@ -22,6 +20,8 @@ pub const NUM_COLLUMNS: usize = 4;
 pub static mut NUM_DECKS: usize = 0;
 
 pub const SCALE: f32 = 0.7;
+
+pub static mut DECKS_PER_GAME: usize = 5;
 
 pub struct SpriteSheetIds {
     pub ids: HashMap<String, Handle<TextureAtlas>>,
@@ -47,42 +47,11 @@ fn main() {
         .add_plugin(DeckPlugin)
         .add_plugin(MenuPlugin)
         .add_startup_system(spawn_camera)
-        .add_system_set(SystemSet::on_enter(GameState::InGame).with_system(spawn_row))
+        // .add_system_set(SystemSet::on_enter(GameState::InGame).with_system(setup_game))
         .run();
 }
 
 fn spawn_camera(mut commands: Commands) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(UiCameraBundle::default());
-}
-
-fn spawn_row(mut commands: Commands, decks: Res<Decks>) {
-    let mut x = -2.5 * CARD_W;
-    let mut y = 2.5 * CARD_H;
-    let deck_num = 4;
-    let primary = false;
-    let deck;
-
-    if primary {
-        deck = &decks.0.get(deck_num).unwrap().primary;
-    } else {
-        deck = &decks.0.get(deck_num).unwrap().secondary;
-    }
-
-    for i in 0..(deck.cards) {
-        if i % NUM_COLLUMNS == 0 {
-            y -= CARD_H + 100.0;
-            x = -2.5 * (CARD_W);
-        }
-        x += CARD_W;
-        //println!("index: {}, x: {}, y: {}", i, x, y);
-        deck::spawn_card(
-            &mut commands,
-            &decks,
-            deck_num,
-            i,
-            Vec3::new(x * SCALE, y * SCALE, 0.0),
-            true,
-        );
-    }
 }

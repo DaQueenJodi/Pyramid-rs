@@ -13,9 +13,9 @@ const CANT_PRESS_BUTTON: Color = crate::CLEAR;
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum GameState {
     MainMenu,
+    PreGame,
     InGame,
     Quit,
-    Settings,
     DeckSelection,
     Left,
     Right,
@@ -27,18 +27,18 @@ struct EnabledJsonData {
     enabled: Vec<usize>,
 }
 
-static mut ENABLED_JSON: Vec<usize> = vec![];
+pub static mut ENABLED_JSON: Vec<usize> = vec![];
 
-fn check_json(num: usize) -> bool {
+pub fn check_json(num: usize) -> bool {
     unsafe { ENABLED_JSON.contains(&num) }
 }
 
-
-fn remove_from_json(num: usize) {
+pub fn remove_from_json(num: usize) {
     // read from file
     let file_path = Path::new("config/enabled_decks.json");
     let reader = std::fs::File::open(file_path).unwrap();
-    let mut json_data: EnabledJsonData = serde_json::from_reader(std::io::BufReader::new(reader)).unwrap();
+    let mut json_data: EnabledJsonData =
+        serde_json::from_reader(std::io::BufReader::new(reader)).unwrap();
 
     // taken from https://stackoverflow.com/a/26243276/17942630
     let i = json_data.enabled.iter().position(|x| *x == num).unwrap();
@@ -47,22 +47,20 @@ fn remove_from_json(num: usize) {
     // write back to file
     let writer = std::fs::File::open(file_path).unwrap();
     serde_json::to_writer(writer, &json_data).unwrap();
-
-
 }
-fn add_to_json(num: usize) {
+pub fn add_to_json(num: usize) {
     let file_path = Path::new("config/enabled_decks.json");
     let reader = std::fs::File::open(file_path).unwrap();
-    let mut json_data: EnabledJsonData = serde_json::from_reader(std::io::BufReader::new(reader)).unwrap();
-    
+    let mut json_data: EnabledJsonData =
+        serde_json::from_reader(std::io::BufReader::new(reader)).unwrap();
+
     json_data.enabled.push(num);
 
     let writer = std::fs::File::open(file_path).unwrap();
     serde_json::to_writer(writer, &json_data).unwrap();
-
 }
 
-fn update_json() {
+pub fn update_json() {
     let file_path = Path::new("config/enabled_decks.json");
     let json_str = std::fs::read_to_string(file_path).unwrap();
     let json_data: EnabledJsonData = serde_json::from_str(&json_str).unwrap();
@@ -76,35 +74,28 @@ impl Plugin for MenuPlugin {
         app.insert_resource(MenuData {
             // used for keeping track of text/buttons so they can be despawned
             button_entity: vec![],
-        });
-        app.insert_resource(CurrPage {
-            // used for indexing the decks in DeckSelection
+        })
+        .insert_resource(CurrPage {
+            // used for indexing the decks in deck selection
             index: 0,
-        });
-        app.add_system_set(SystemSet::on_enter(GameState::MainMenu).with_system(setup_main_menu));
-        app.add_system_set(
-            SystemSet::on_enter(GameState::Settings).with_system(setup_settings_menu),
-        );
-        app.add_system_set(
-            SystemSet::on_enter(GameState::DeckSelection)
-                .with_system(setup_deck_menu)
-                .with_system(spawn_row_backs),
-        );
-
-        app.add_system_set(
-            SystemSet::on_update(GameState::MainMenu).with_system(handle_ui_buttons),
-        );
-        app.add_system_set(
-            SystemSet::on_update(GameState::Settings).with_system(handle_ui_buttons),
-        );
-        app.add_system_set(
+            shown: vec![],
+        })
+        .add_system_set(SystemSet::on_enter(GameState::MainMenu).with_system(setup_main_menu))
+        .add_system_set(SystemSet::on_enter(GameState::PreGame).with_system(setup_pre_game))
+        .add_system_set(SystemSet::on_enter(GameState::DeckSelection).with_system(setup_deck_menu))
+        .add_system_set(SystemSet::on_update(GameState::MainMenu).with_system(handle_ui_buttons))
+        .add_system_set(
             SystemSet::on_update(GameState::DeckSelection)
                 .with_system(handle_ui_buttons)
                 .with_system(spawn_row_backs),
-        );
-        app.add_system_set(SystemSet::on_exit(GameState::MainMenu).with_system(close_menu));
-        app.add_system_set(SystemSet::on_exit(GameState::Settings).with_system(close_menu));
-        app.add_system_set(SystemSet::on_exit(GameState::DeckSelection).with_system(close_menu));
+        )
+        .add_system_set(
+            SystemSet::on_update(GameState::PreGame)
+                .with_system(handle_ui_buttons)
+                .with_system(update_pre_game),
+        )
+        .add_system_set(SystemSet::on_exit(GameState::MainMenu).with_system(close_menu))
+        .add_system_set(SystemSet::on_exit(GameState::DeckSelection).with_system(close_menu));
     }
 }
 #[derive(Clone, Copy, Component)]
@@ -113,7 +104,6 @@ pub enum MenuItems {
     DeckSelection,
     Left,
     Right,
-    Settings,
     HowToPlay,
     Quit,
 }
@@ -129,6 +119,7 @@ struct MenuData {
 
 struct CurrPage {
     index: usize,
+    shown: Vec<Entity>, // stores the current page's deck entities
 }
 
 fn handle_ui_buttons(
@@ -146,8 +137,7 @@ fn handle_ui_buttons(
 
                 match menu_items {
                     MenuItems::HowToPlay => display_how_to(),
-                    MenuItems::Settings => state.set(GameState::Settings).unwrap(),
-                    MenuItems::Play => state.set(GameState::InGame).unwrap(),
+                    MenuItems::Play => state.set(GameState::PreGame).unwrap(),
                     MenuItems::DeckSelection => state.set(GameState::DeckSelection).unwrap(),
                     MenuItems::Quit => state.set(GameState::Quit).unwrap(),
                     MenuItems::Right => {
@@ -257,12 +247,6 @@ fn setup_deck_menu(
         MenuItems::Right,
     ));
 }
-fn setup_settings_menu(
-    mut commands: Commands,
-    mut asset_server: ResMut<AssetServer>,
-    mut menu_data: ResMut<MenuData>,
-) {
-}
 
 fn display_how_to() {}
 
@@ -362,48 +346,134 @@ fn spawn_row_backs(
     let mut x_mul = 1.0;
     let mut y_mul = 1.0;
     let how_many;
-
-    unsafe {
-        if NUM_DECKS < 8 {
-            how_many = NUM_DECKS;
-        } else {
-            how_many = 8;
-        }
+    let num_decks = unsafe {crate::NUM_DECKS};
+    if num_decks - (page.index * 8) < 8 {
+        how_many = num_decks;
+    } else {
+        how_many = 8;
     }
 
     for i in page.index..(page.index + how_many) {
-        if i != 0 && i % 4 == 0 {
-            y_mul += 1.0;
-        }
-
-        // i = current deck
-        //let i = page.index;
-        println!("{}", i);
         let back = &decks.0.get(i).unwrap().back;
-        x_mul += 1.0;
-        let image = UiImage::from(back.clone());
-
-        menu_data.button_entity.push(
-            commands
-                .spawn_bundle(ButtonBundle {
-                    style: Style {
-                        size: Size::new(Val::Px(2100.0 * 0.1), Val::Px(3000.0 * 0.1)),
-                        position_type: PositionType::Absolute,
-                        position: Rect {
-                            bottom: Val::Px(500.0 / y_mul),
-                            left: Val::Px(300.0 * x_mul),
-                            ..Default::default()
-                        },
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        ..Default::default()
-                    },
-                    image: image,
-                    //color: NORMAL_BUTTON.into(),
-                    ..Default::default()
-                })
-                .insert(DeckNumber { num: i })
-                .id(),
-        );
+        menu_data
+            .button_entity
+            .push(spawn_back_grid(&mut commands, back.clone(), i));
     }
+}
+
+fn setup_pre_game(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut page: ResMut<CurrPage>,
+    mut menu_data: ResMut<MenuData>,
+    decks: Res<Decks>,
+) {
+    let size = Vec2::new(250.0, 100.0);
+
+    page.index = 0; // reset index as it was used for the deck selection
+
+    let font = asset_server.load("fonts/Roboto.ttf");
+
+    menu_data.button_entity.push(spawn_main_text(
+        &mut commands,
+        format!("Select {} decks!", unsafe { crate::DECKS_PER_GAME }).as_str(),
+        font.clone(),
+        -120.0,
+    ));
+
+    menu_data.button_entity.push(spawn_button(
+        &mut commands,
+        font.clone(),
+        "Left",
+        40.0,
+        0.0,
+        500.0,
+        size,
+        MenuItems::Left,
+    ));
+    menu_data.button_entity.push(spawn_button(
+        &mut commands,
+        font.clone(),
+        "Right",
+        40.0,
+        1670.0, // somehow this is the rightmost part of the screen idk
+        500.0,
+        size,
+        MenuItems::Right,
+    ));
+}
+
+fn update_pre_game(
+    mut commands: Commands,
+    mut page: ResMut<CurrPage>,
+    decks: Res<Decks>,
+) {
+
+    if !page.is_changed() {
+        return;
+    }
+    for i in &page.shown {
+        commands.entity(*i).despawn_recursive();
+    }
+    page.shown.clear();
+
+
+    let num_decks = unsafe { NUM_DECKS };
+
+    let mut how_many = 0;
+    if num_decks - (page.index * 8) < 8 {
+        how_many = num_decks - (page.index * 8);
+    } else {
+        how_many = 8;
+    }
+
+    println!("{}", how_many);
+
+    if num_decks < unsafe { crate::DECKS_PER_GAME } {
+        unsafe {
+            crate::DECKS_PER_GAME = num_decks;
+        }
+    }
+    for i in page.index..(page.index + how_many) {
+      //  println!("{}", page.index);
+      //  println!("{}", &decks.0.len());
+        let back = &decks.0.get(page.index + i).unwrap().back;
+        page.shown
+            .push(spawn_back_grid(&mut commands, back.clone(), i));
+    }
+}
+
+fn spawn_back_grid(commands: &mut Commands, image: Handle<Image>, index: usize) -> Entity {
+    let mut mulx = 1.0;
+    let mut muly = 1.0;
+    for i in 0..=index {
+        mulx += 1.0;
+        if i % 4 == 0 {
+            // for every row
+            mulx = 1.0;
+            muly *= 4.0;
+        }
+    }
+
+    let image = UiImage::from(image);
+    commands
+        .spawn_bundle(ButtonBundle {
+            style: Style {
+                size: Size::new(Val::Px(2100.0 * 0.1), Val::Px(3000.0 * 0.1)),
+                position_type: PositionType::Absolute,
+                position: Rect {
+                    bottom: Val::Px(700.0 - (muly * 40.0)),
+                    left: Val::Px(300.0 * mulx),
+                    ..Default::default()
+                },
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..Default::default()
+            },
+            image: image,
+            //color: NORMAL_BUTTON.into(),
+            ..Default::default()
+        })
+        .insert(DeckNumber { num: index })
+        .id()
 }
