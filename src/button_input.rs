@@ -1,9 +1,14 @@
+use std::path::Path;
+
 use bevy::prelude::*;
+use bevy_debug_text_overlay::screen_print;
 
 use crate::{constants::*, handle_json::*, states_and_ui::*};
 
 pub fn handle_choosing_cards(
+    state: ResMut<State<GameState>>,
     mut enabled_json: ResMut<EnabledJson>,
+    mut current_run_json: ResMut<CurrentRunJson>,
     mut interaction_query: Query<
         (&Interaction, &DeckNumber, &mut UiColor),
         (Changed<Interaction>, With<Button>),
@@ -15,18 +20,31 @@ pub fn handle_choosing_cards(
 
     for (interaction, deck_num, mut color) in interaction_query.iter_mut() {
         if interaction == &Interaction::Clicked {
-            if !enabled_json.check_disabled(&deck_num.num) {
-                // if its enabled, disable it
-                disable_deck(deck_num.num);
-                enabled_json.update();
+            screen_print!("Deck Selected: {}", deck_num.num);
 
-                *color = DISABLE_DECK.into();
+            if *state.current() == GameState::PreGame {
+                if current_run_json.check_deck(&deck_num.num) {
+                    // if its enabled, disable it
+                    current_run_json.disable_deck(deck_num.num);
+
+                    *color = Default::default();
+                } else {
+                    // if its disabled, enable it
+                    current_run_json.enable_deck(deck_num.num);
+
+                    *color = ENABLED_DECK.into();
+                }
             } else {
-                // if its disabled, enable it
-                enable_deck(deck_num.num);
-                enabled_json.update();
+                if !enabled_json.check_disabled(&deck_num.num) {
+                    // if its enabled, disable it
+                    enabled_json.disable(deck_num.num);
+                    *color = DISABLE_DECK.into();
+                } else {
+                    // if its disabled, enable it
+                    enabled_json.disable(deck_num.num);
 
-                *color = Default::default();
+                    *color = Default::default();
+                }
             }
         }
     }
@@ -35,6 +53,9 @@ pub fn handle_choosing_cards(
 pub fn handle_ui_buttons(
     mut state: ResMut<State<GameState>>,
     mut curr_page: ResMut<CurrPage>, // current index in deck selection
+    globals: Res<GameGlobals>,
+    enabled_json: Res<EnabledJson>,
+    mut current_run_json: ResMut<CurrentRunJson>,
     mut interaction_query: Query<
         (&Interaction, &mut UiColor, &MenuItems),
         (Changed<Interaction>, With<Button>),
@@ -44,8 +65,8 @@ pub fn handle_ui_buttons(
         let mut num_decks = 0;
 
         match state.current() {
-            GameState::DeckSelection => num_decks = unsafe { NUM_DECKS }, // total decks
-            GameState::PreGame => num_decks = unsafe { DECKS_PER_GAME },  // enabled decks
+            GameState::DeckSelection => num_decks = globals.total_decks, // total decks
+            GameState::PreGame => num_decks = globals.total_decks - enabled_json.disabled.len(), // enabled decks
             _ => {}
         }
 
@@ -55,7 +76,23 @@ pub fn handle_ui_buttons(
 
                 match menu_items {
                     MenuItems::HowToPlay => state.set(GameState::HowTo).unwrap(),
-                    MenuItems::Play => state.set(GameState::PreGame).unwrap(),
+                    MenuItems::Continue => {
+                        if !Path::new("config/current_run.json").exists() {
+                            // check if save data exists
+                            *color = CANT_PRESS_BUTTON.into();
+                        } else {
+                            current_run_json.load();
+                            state.set(GameState::PreGame).unwrap();
+                        }
+                    }
+                    MenuItems::NewGame => {
+                        // delete the save file if it exists, then enter pre-game
+                        let path = Path::new("config/current_run.json");
+                        if path.exists() {
+                            std::fs::remove_file(path).unwrap();
+                        }
+                        state.set(GameState::PreGame).unwrap();
+                    }
                     MenuItems::DeckSelection => state.set(GameState::DeckSelection).unwrap(),
                     MenuItems::Quit => state.set(GameState::Quit).unwrap(),
                     MenuItems::Right => {

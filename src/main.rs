@@ -1,5 +1,6 @@
 #![allow(clippy::redundant_field_names)]
 use bevy::{prelude::*, window::WindowMode};
+use bevy_debug_text_overlay::OverlayPlugin;
 use std::collections::HashMap;
 pub mod deck;
 use deck::*;
@@ -26,7 +27,7 @@ fn main() {
         .insert_resource(WindowDescriptor {
             width: 960.0,
             height: 640.0,
-            title: "*notices your bulgy wulgy* uwu".to_owned(),
+            title: "The Pyramid".to_owned(),
             vsync: true,
             resizable: false,
             mode: WindowMode::BorderlessFullscreen,
@@ -34,12 +35,16 @@ fn main() {
         })
         .add_state(GameState::MainMenu)
         .add_plugins(DefaultPlugins)
+        .add_plugin(OverlayPlugin {
+            font_size: 32.0,
+            ..Default::default()
+        })
         .add_plugin(DebugPlugin)
         .add_plugin(DeckPlugin)
         .add_plugin(MenuPlugin)
         .add_plugin(JsonPlugin)
+        .add_plugin(StaticMut)
         .add_startup_system(spawn_camera)
-        // .add_system_set(SystemSet::on_enter(GameState::InGame).with_system(setup_game))
         .run();
 }
 

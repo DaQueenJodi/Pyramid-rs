@@ -1,4 +1,8 @@
+use std::path::Path;
+
 use bevy::prelude::*;
+
+use crate::states_and_ui::GameState;
 
 pub const NORMAL_BUTTON: Color = Color::rgb(0.45, 0.45, 0.45);
 pub const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
@@ -15,10 +19,30 @@ pub const CARD_H: f32 = 406.0;
 pub const CARD_W: f32 = 580.0;
 
 pub const NUM_ROWS: usize = 4;
-pub const NUM_COLLUMNS: usize = 4;
-
-pub static mut NUM_DECKS: usize = 0;
+pub const NUM_COLLUMNS: usize = 8;
 
 pub const SCALE: f32 = 0.7;
 
-pub static mut DECKS_PER_GAME: usize = 5;
+pub struct GameGlobals {
+    pub decks_per_game: usize,
+    pub total_decks: usize,
+}
+
+pub struct StaticMut;
+
+impl Plugin for StaticMut {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(GameGlobals {
+            decks_per_game: 5,
+            total_decks: 0,
+        })
+        .add_system_set(SystemSet::on_enter(GameState::MainMenu).with_system(set_total_decks));
+    }
+}
+
+fn set_total_decks(mut globals: ResMut<GameGlobals>) {
+    let file_path = Path::new("config/decks.json");
+    let json_str = std::fs::read_to_string(file_path).unwrap();
+    let json_data: crate::deck::DeckDataWrapper = serde_json::from_str(&json_str).unwrap();
+    globals.total_decks = json_data.decks.len();
+}

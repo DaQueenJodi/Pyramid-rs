@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use bevy_inspector_egui::Inspectable;
 use serde::{Deserialize, Serialize};
 
-use crate::DECKS_PER_GAME;
+use crate::spawn_button_grid;
 
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
@@ -43,7 +43,7 @@ impl Plugin for MenuPlugin {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GameState {
     MainMenu,
     HowTo,
@@ -53,6 +53,8 @@ pub enum GameState {
     DeckSelection,
     Left,
     Right,
+
+    Loading,
 }
 #[derive(Component)]
 pub struct MainMenu;
@@ -62,7 +64,8 @@ pub struct MenuPlugin;
 
 #[derive(Clone, Copy, Component)]
 pub enum MenuItems {
-    Play,
+    Continue,
+    NewGame,
     DeckSelection,
     Left,
     Right,
@@ -92,42 +95,16 @@ fn setup_main_menu(
     let size = Vec2::new(250.0, 100.0);
     let font: Handle<Font> = asset_server.load("fonts/Roboto.ttf");
 
+
     menu_data.button_entity.push(spawn_main_text(
         &mut commands,
         "Main Menu",
         font.clone(),
         5.0,
     ));
-    menu_data.button_entity.push(spawn_button(
-        &mut commands,
-        font.clone(),
-        "Play",
-        40.0,
-        820.0,
-        600.0,
-        size,
-        MenuItems::Play,
-    ));
-    menu_data.button_entity.push(spawn_button(
-        &mut commands,
-        font.clone(),
-        "Decks",
-        40.0,
-        820.0,
-        400.0,
-        size,
-        MenuItems::DeckSelection,
-    ));
-    menu_data.button_entity.push(spawn_button(
-        &mut commands,
-        font.clone(),
-        "How To Play",
-        40.0,
-        820.0,
-        200.0,
-        size,
-        MenuItems::HowToPlay,
-    ));
+
+    spawn_button_grid!(&mut commands, font.clone(), (MenuItems::HowToPlay, "How To Play"), (MenuItems::DeckSelection, "Deck Select"));
+
 }
 
 fn setup_deck_menu(
@@ -259,6 +236,7 @@ fn update_deck_select(
     decks: Res<crate::deck::DeckBacks>,
     mut page: ResMut<CurrPage>,
     enabled_json: Res<EnabledJson>,
+    globals: Res<GameGlobals>,
 ) {
     let index = page.index;
 
@@ -272,10 +250,10 @@ fn update_deck_select(
     }
     page.shown.clear();
 
-    let num_decks = unsafe { crate::NUM_DECKS };
+    let num_decks = globals.total_decks;
     let how_many;
-    if num_decks - (page.index * 8) < 8 {
-        how_many = num_decks - (page.index * 8);
+    if num_decks - (page.index * NUM_COLLUMNS) < NUM_COLLUMNS {
+        how_many = num_decks - (page.index * NUM_COLLUMNS);
     } else {
         how_many = 8;
     }
@@ -283,10 +261,13 @@ fn update_deck_select(
     for i in index..(index + how_many) {
         // set deck color to normal, otherwise make it disabled
         let mut color = UiColor::default();
-        if enabled_json.check_disabled(&(i - index)) {
+        let deck_num = (index * (NUM_COLLUMNS - 1)) + i;
+
+        if enabled_json.check_disabled(&deck_num) {
             color = DISABLE_DECK.into();
+        } else {
         }
-        let deck_num = (index * 7) + i;
+
         let back = decks.backs.get(deck_num).unwrap();
         page.shown.push(spawn_back_grid(
             &mut commands,
@@ -303,11 +284,12 @@ fn setup_pre_game(
     asset_server: Res<AssetServer>,
     mut page: ResMut<CurrPage>,
     mut menu_data: ResMut<MenuData>,
-    mut enabled_json: ResMut<EnabledJson>,
+    enabled_json: Res<EnabledJson>,
+    mut globals: ResMut<GameGlobals>,
 ) {
-    enabled_json.update(); // make sure that the whitelist is set properly
+    globals.decks_per_game = globals.total_decks - enabled_json.disabled.len();
 
-    unsafe { DECKS_PER_GAME = enabled_json.enabled.len() };
+    globals.decks_per_game = globals.total_decks - enabled_json.disabled.len();
 
     let size = Vec2::new(250.0, 100.0);
 
@@ -317,7 +299,7 @@ fn setup_pre_game(
 
     menu_data.button_entity.push(spawn_main_text(
         &mut commands,
-        format!("Select {} decks!", unsafe { crate::DECKS_PER_GAME }).as_str(),
+        format!("Select {} decks!", globals.decks_per_game).as_str(),
         font.clone(),
         -120.0,
     ));
@@ -348,6 +330,9 @@ fn update_pre_game(
     mut commands: Commands,
     mut page: ResMut<CurrPage>,
     deck_backs: Res<crate::DeckBacks>,
+    mut globals: ResMut<GameGlobals>,
+    enabled_json: Res<EnabledJson>,
+    mut current_run_json: ResMut<CurrentRunJson>,
 ) {
     if !page.is_changed() {
         return;
@@ -357,36 +342,38 @@ fn update_pre_game(
     }
     page.shown.clear();
 
-    let num_decks = unsafe { DECKS_PER_GAME };
+    let num_decks = globals.decks_per_game;
 
     let how_many;
-    if num_decks - (page.index * 8) < 8 {
-        how_many = num_decks - (page.index * 8);
+    if num_decks - (page.index * NUM_COLLUMNS) < NUM_COLLUMNS {
+        how_many = num_decks - (page.index * NUM_COLLUMNS);
     } else {
-        how_many = 8;
+        how_many = NUM_COLLUMNS;
     }
 
-    //println!("{}", how_many);
-
-    if num_decks < unsafe { crate::DECKS_PER_GAME } {
-        unsafe {
-            crate::DECKS_PER_GAME = num_decks;
-        }
+    if num_decks < globals.decks_per_game {
+        globals.decks_per_game = num_decks;
     }
 
     let index = page.index;
+    let mut i = 0;
+    for j in enabled_json.enabled.iter() {
+        if i == how_many {
+            break;
+        }
 
-    for i in index..(index + how_many) {
+        current_run_json.enable_deck(*j);
         let deck_num = (index * 7) + i;
-        let back = deck_backs.backs.get(deck_num).unwrap();
+        let back = deck_backs.backs.get(*j).unwrap();
 
         page.shown.push(spawn_back_grid(
             &mut commands,
             back.clone(),
-            i - index,
             deck_num,
+            *j,
             UiColor::default(),
         ));
+        i += 1;
     }
 }
 
@@ -412,7 +399,7 @@ pub fn spawn_back_grid(
     commands
         .spawn_bundle(ButtonBundle {
             style: Style {
-                size: Size::new(Val::Px(2100.0 * 0.1), Val::Px(3000.0 * 0.1)),
+                size: Size::new(Val::Px(210.0), Val::Px(300.0)),
                 position_type: PositionType::Absolute,
                 position: Rect {
                     bottom: Val::Px(700.0 - (muly * 40.0)),
@@ -429,4 +416,20 @@ pub fn spawn_back_grid(
         })
         .insert(DeckNumber { num: deck_num })
         .id()
+}
+
+/* (
+    [$( ($key:expr, $value:expr) ),+]
+) */
+
+#[macro_export]
+macro_rules! spawn_button_grid {
+    (
+        $commands:expr, $font:expr,
+        $(($but_type:expr, $text:expr)),+
+    ) => {
+            let mut y = 100.0;
+
+            $(spawn_button($commands, $font, $text,40.0, 820.0, y, Vec2::new(250.0, 100.0), $but_type ); y += 200.0)+
+    };
 }

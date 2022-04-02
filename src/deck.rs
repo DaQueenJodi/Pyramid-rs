@@ -3,7 +3,7 @@ use bevy_inspector_egui::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path};
 
-use crate::{CARD_H, CARD_W, SCALE};
+use crate::{handle_json::CurrentRunJson, CARD_H, CARD_W, SCALE};
 
 #[derive(Default, Component, Inspectable, Clone, Debug)]
 pub struct Deck {
@@ -24,12 +24,12 @@ pub struct DeckBacks {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct DeckDataWrapper {
-    decks: Vec<DeckData>,
+pub struct DeckDataWrapper {
+    pub decks: Vec<DeckData>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-struct DeckData {
+pub struct DeckData {
     primary_cards: usize, // card count
 
     name: String,      // name used in the deck selection
@@ -53,16 +53,21 @@ pub fn make_decks(
     mut commands: Commands,
     assets: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+    current_run_json: Res<CurrentRunJson>,
 ) {
     let mut deck_vec: Vec<DecksTogether> = Vec::new();
     let file_path = Path::new("config/decks.json");
     let json_str = fs::read_to_string(file_path).unwrap();
     let json_data: DeckDataWrapper = serde_json::from_str(&json_str).unwrap();
 
+    let index = 0;
+
     for curr_json in json_data.decks.clone() {
-        unsafe {
-            crate::NUM_DECKS += 1;
+        // if it is not enabled in the current run, dont add it
+        if !current_run_json.check_deck(&index) {
+            continue;
         }
+
         // if file hasnt already made a handle
 
         let image: Handle<Image> = assets.load(Path::new(&curr_json.file));
@@ -136,14 +141,11 @@ fn gen_2_decks(json: DeckData, texture: Handle<TextureAtlas>) -> DecksTogether {
     }
 }
 
-fn make_backs(assets: Res<AssetServer>, mut deck_backs: ResMut<DeckBacks>) {
+pub fn make_backs(assets: Res<AssetServer>, mut deck_backs: ResMut<DeckBacks>) {
     let file_path = Path::new("config/decks.json");
     let json_str = fs::read_to_string(file_path).unwrap();
     let json_data: DeckDataWrapper = serde_json::from_str(&json_str).unwrap();
     for curr_json in json_data.decks.clone() {
-        unsafe {
-            crate::NUM_DECKS += 1;
-        }
         let back: Handle<Image> = assets.load(Path::new(&curr_json.back_file));
 
         deck_backs.backs.push(back);
