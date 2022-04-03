@@ -20,9 +20,10 @@ pub fn handle_choosing_cards(
 
     for (interaction, deck_num, mut color) in interaction_query.iter_mut() {
         if interaction == &Interaction::Clicked {
-            screen_print!("Deck Selected: {}", deck_num.num);
+            //screen_print!("Deck Selected: {}", deck_num.num);
 
             if *state.current() == GameState::PreGame {
+
                 if current_run_json.check_deck(&deck_num.num) {
                     // if its enabled, disable it
                     current_run_json.disable_deck(deck_num.num);
@@ -61,6 +62,7 @@ pub fn handle_ui_buttons(
         (Changed<Interaction>, With<Button>),
     >,
 ) {
+
     for (interaction, mut color, menu_items) in interaction_query.iter_mut() {
         let mut num_decks = 0;
 
@@ -109,6 +111,9 @@ pub fn handle_ui_buttons(
                             *color = CANT_PRESS_BUTTON.into();
                         }
                     } // make sure you dont underflow the index
+                   MenuItems::Save => {
+                       enabled_json.update(); // store struct in file
+                   }
                 }
             }
 

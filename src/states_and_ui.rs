@@ -67,6 +67,7 @@ pub enum MenuItems {
     Continue,
     NewGame,
     DeckSelection,
+    Save,
     Left,
     Right,
     HowToPlay,
@@ -92,7 +93,7 @@ fn setup_main_menu(
     asset_server: Res<AssetServer>,
     mut menu_data: ResMut<MenuData>,
 ) {
-    let size = Vec2::new(250.0, 100.0);
+    //let size = Vec2::new(250.0, 100.0);
     let font: Handle<Font> = asset_server.load("fonts/Roboto.ttf");
 
 
@@ -102,8 +103,11 @@ fn setup_main_menu(
         font.clone(),
         5.0,
     ));
+// spawn buttons and add them to the button entity vector to despawn later
+  for i in spawn_button_grid!(&mut commands, font.clone(), (MenuItems::HowToPlay, "How To Play"), (MenuItems::DeckSelection, "Deck Select"), (MenuItems::NewGame, "New Game"), (MenuItems::Continue, "Continue")) {
+      menu_data.button_entity.push(i);
+  }
 
-    spawn_button_grid!(&mut commands, font.clone(), (MenuItems::HowToPlay, "How To Play"), (MenuItems::DeckSelection, "Deck Select"));
 
 }
 
@@ -139,6 +143,16 @@ fn setup_deck_menu(
         500.0,
         size,
         MenuItems::Right,
+    ));
+    menu_data.button_entity.push(spawn_button(
+        &mut commands,
+        font.clone(),
+        "Save",
+        40.0,
+        1670.0, // somehow this is the rightmost part of the screen idk
+        500.0,
+        size,
+        MenuItems::Save,
     ));
 }
 
@@ -427,9 +441,12 @@ macro_rules! spawn_button_grid {
     (
         $commands:expr, $font:expr,
         $(($but_type:expr, $text:expr)),+
-    ) => {
+    ) => { {
+            let mut entities: Vec<Entity> = Vec::new();
+
             let mut y = 100.0;
 
-            $(spawn_button($commands, $font, $text,40.0, 820.0, y, Vec2::new(250.0, 100.0), $but_type ); y += 200.0)+
-    };
+            $( entities.push(spawn_button($commands, $font, $text,40.0, 820.0, y, Vec2::new(250.0, 100.0), $but_type)) ; y += 200.0;)+
+            entities
+    }};
 }
