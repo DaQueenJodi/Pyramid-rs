@@ -4,6 +4,8 @@ use bevy::prelude::*;
 
 use crate::states_and_ui::GameState;
 
+use crate::handle_json::DeckDataWrapper;
+
 pub const NORMAL_BUTTON: Color = Color::rgb(0.45, 0.45, 0.45);
 pub const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 pub const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35); // green
@@ -43,6 +45,6 @@ impl Plugin for StaticMut {
 fn set_total_decks(mut globals: ResMut<GameGlobals>) {
     let file_path = Path::new("config/decks.json");
     let json_str = std::fs::read_to_string(file_path).unwrap();
-    let json_data: crate::deck::DeckDataWrapper = serde_json::from_str(&json_str).unwrap();
+    let json_data: DeckDataWrapper = serde_json::from_str(&json_str).unwrap();
     globals.total_decks = json_data.decks.len();
 }

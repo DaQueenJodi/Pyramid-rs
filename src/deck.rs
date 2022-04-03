@@ -1,9 +1,11 @@
 use bevy::prelude::*;
 use bevy_inspector_egui::prelude::*;
-use serde::{Deserialize, Serialize};
 use std::{fs, path::Path};
 
-use crate::{handle_json::CurrentRunJson, CARD_H, CARD_W, SCALE};
+use crate::{
+    handle_json::{CurrentRunJson, DeckData, DeckDataWrapper},
+    CARD_H, CARD_W, SCALE,
+};
 
 #[derive(Default, Component, Inspectable, Clone, Debug)]
 pub struct Deck {
@@ -23,21 +25,6 @@ pub struct DeckBacks {
     pub backs: Vec<Handle<Image>>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct DeckDataWrapper {
-    pub decks: Vec<DeckData>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct DeckData {
-    primary_cards: usize, // card count
-
-    name: String,      // name used in the deck selection
-    file: String,      // path to sprite sheet
-    back_file: String, // path to the back image
-
-    secondary_cards: usize,
-}
 pub struct DeckPlugin;
 
 impl Plugin for DeckPlugin {
@@ -54,15 +41,13 @@ pub fn make_decks(
     assets: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     current_run_json: Res<CurrentRunJson>,
+    deck_data: Res<DeckDataWrapper>,
 ) {
     let mut deck_vec: Vec<DecksTogether> = Vec::new();
-    let file_path = Path::new("config/decks.json");
-    let json_str = fs::read_to_string(file_path).unwrap();
-    let json_data: DeckDataWrapper = serde_json::from_str(&json_str).unwrap();
 
     let index = 0;
 
-    for curr_json in json_data.decks.clone() {
+    for curr_json in deck_data.decks.clone() {
         // if it is not enabled in the current run, dont add it
         if !current_run_json.check_deck(&index) {
             continue;
@@ -104,10 +89,10 @@ pub fn spawn_card(
 
     commands
         .spawn_bundle(SpriteSheetBundle {
-            sprite: sprite,
+            sprite,
             texture_atlas: deck.sheet.clone(),
             transform: Transform {
-                translation: translation,
+                translation,
                 scale: Vec3::new(SCALE, SCALE, SCALE), // scale the height and width
                 ..Default::default()
             },
@@ -137,7 +122,7 @@ fn gen_2_decks(json: DeckData, texture: Handle<TextureAtlas>) -> DecksTogether {
     DecksTogether {
         primary: temp_deck1,
         secondary: temp_deck2,
-        name: name,
+        name,
     }
 }
 

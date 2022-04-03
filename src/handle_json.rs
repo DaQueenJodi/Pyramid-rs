@@ -3,16 +3,28 @@ use std::{fs::File, path::Path};
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
+impl DeckDataWrapper {
+    pub fn load(&mut self) {
+        let file_path = Path::new("config/decks.json");
+        let reader = File::open(file_path).unwrap(); // open in read only
+        *self = serde_json::from_reader(reader).unwrap();
+    }
+}
+
 impl EnabledJson {
     pub fn load(&mut self) {
         let file_path = Path::new("config/enabled_decks.json");
-        let reader = File::open(file_path).unwrap(); // open with write perms
+        let reader = File::open(file_path).unwrap(); // open in read only
         *self = serde_json::from_reader(reader).unwrap();
     }
 
     pub fn update(&self) {
         let file_path = Path::new("config/enabled_decks.json");
-        let writer = File::options().write(true).open(file_path).unwrap(); // open with write perms
+        let writer = File::options()
+            .write(true)
+            .truncate(true)
+            .open(file_path)
+            .unwrap(); // open with write perms
         serde_json::to_writer(writer, self).unwrap();
     }
     pub fn enable(&mut self, deck: usize) {
@@ -46,14 +58,18 @@ impl CurrentRunJson {
     pub fn load(&mut self) {
         // load json into the struct
         let file_path = Path::new("config/current_run.json");
-        let reader = File::open(file_path).unwrap(); // open with write perms
+        let reader = File::open(file_path).unwrap(); // open in read only mode
         *self = serde_json::from_reader(reader).unwrap();
     }
 
     pub fn update(&self) {
         // update JSON file
         let file_path = Path::new("config/current_run.json");
-        let writer = File::options().write(true).open(file_path).unwrap(); // open with write perms
+        let writer = File::options()
+            .write(true)
+            .truncate(true)
+            .open(file_path)
+            .unwrap(); // open with write perms
         serde_json::to_writer(writer, self).unwrap(); // write file
     }
     pub fn check_deck(&self, deck: &usize) -> bool {
@@ -90,7 +106,8 @@ impl Plugin for JsonPlugin {
             score: 0,
             decks: Vec::new(),
             hand: Vec::new(),
-        });
+        })
+        .insert_resource(DeckDataWrapper { decks: Vec::new() });
     }
 }
 
@@ -105,4 +122,20 @@ pub struct CurrentRunJson {
 pub struct EnabledJson {
     pub disabled: Vec<usize>,
     pub enabled: Vec<usize>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DeckDataWrapper {
+    pub decks: Vec<DeckData>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DeckData {
+    pub primary_cards: usize, // card count
+
+    pub name: String,      // name used in the deck selection
+    pub file: String,      // path to sprite sheet
+    pub back_file: String, // path to the back image
+
+    pub secondary_cards: usize,
 }

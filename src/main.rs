@@ -45,10 +45,24 @@ fn main() {
         .add_plugin(JsonPlugin)
         .add_plugin(StaticMut)
         .add_startup_system(spawn_camera)
+        .add_startup_system(setup_game)
         .run();
 }
 
 fn spawn_camera(mut commands: Commands) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(UiCameraBundle::default());
+}
+
+fn setup_game(mut enabled_json: ResMut<EnabledJson>, mut deck_data: ResMut<DeckDataWrapper>) {
+    enabled_json.load();
+    deck_data.load();
+
+    for deck in 0..deck_data.decks.len() {
+        if !enabled_json.check_disabled(&deck) && !enabled_json.check_enabled(&deck) {
+            // if it isnt disabled and isnt already enabled, add it
+            enabled_json.enable(deck);
+        }
+    }
+    enabled_json.update();
 }
