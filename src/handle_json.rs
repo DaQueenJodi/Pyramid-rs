@@ -3,6 +3,26 @@ use std::{fs::File, path::Path};
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
+
+
+
+impl Plugin for JsonPlugin {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(EnabledJson {
+            enabled: Vec::new(),
+            disabled: Vec::new(),
+        })
+        .insert_resource(CurrentRunJson {
+            score: 0,
+            decks: Vec::new(),
+            hand: Vec::new(),
+        })
+        .insert_resource(DeckDataWrapper { decks: Vec::new() });
+    }
+}
+
+
+
 impl DeckDataWrapper {
     pub fn load(&mut self) {
         let file_path = Path::new("config/decks.json");
@@ -96,20 +116,6 @@ impl CurrentRunJson {
 
 pub struct JsonPlugin;
 
-impl Plugin for JsonPlugin {
-    fn build(&self, app: &mut App) {
-        app.insert_resource(EnabledJson {
-            enabled: Vec::new(),
-            disabled: Vec::new(),
-        })
-        .insert_resource(CurrentRunJson {
-            score: 0,
-            decks: Vec::new(),
-            hand: Vec::new(),
-        })
-        .insert_resource(DeckDataWrapper { decks: Vec::new() });
-    }
-}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CurrentRunJson {

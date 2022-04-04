@@ -1,5 +1,11 @@
-use crate::{button_input::*, constants::*, deck::DeckBacks, handle_json::*};
+use crate::{
+    button_input::*,
+    constants::*,
+    deck::{make_decks, DeckBacks},
+    handle_json::*,
+};
 use bevy::prelude::*;
+use bevy_debug_text_overlay::screen_print;
 use bevy_inspector_egui::Inspectable;
 use serde::{Deserialize, Serialize};
 
@@ -34,7 +40,11 @@ impl Plugin for MenuPlugin {
         )
         .add_system_set(SystemSet::on_exit(GameState::MainMenu).with_system(close_menu))
         .add_system_set(SystemSet::on_exit(GameState::DeckSelection).with_system(close_menu))
-        .add_system_set(SystemSet::on_exit(GameState::PreGame).with_system(crate::make_decks));
+        .add_system_set(
+            SystemSet::on_exit(GameState::PreGame)
+                .with_system(close_menu)
+                .with_system(make_decks),
+        );
     }
 }
 
@@ -59,6 +69,7 @@ pub struct MenuPlugin;
 
 #[derive(Clone, Copy, Component)]
 pub enum MenuItems {
+    Back,
     Continue,
     NewGame,
     DeckSelection,
@@ -84,7 +95,14 @@ fn setup_main_menu(
     mut menu_data: ResMut<MenuData>,
     mut enabled_json: ResMut<EnabledJson>,
 ) {
-    //let size = Vec2::new(250.0, 100.0);
+    spawn_button_img(
+        &mut commands,
+        Vec2::new(150.0, 150.0),
+        100.0,
+        800.0,
+        MenuItems::Back,
+        asset_server.load("ui/back_arrow.png"),
+    );
 
     enabled_json.load(); // load saved enabled decks
 
@@ -124,23 +142,6 @@ fn setup_deck_menu(
     commands.entity(text).insert(Scrollable {}); // make this scroll with the cards. looks super weird otherwise
     menu_data.button_entity.push(text);
 
-    menu_data.button_entity.push(spawn_button_img(
-        &mut commands,
-        Vec2::new(200.0, 200.0),
-        40.0,
-        400.0,
-        MenuItems::Left,
-        asset_server.load("ui/left.png"),
-    ));
-
-    menu_data.button_entity.push(spawn_button_img(
-        &mut commands,
-        Vec2::new(200.0, 200.0),
-        1670.0, // somehow this is the rightmost part of the screen idk
-        400.0,
-        MenuItems::Right,
-        asset_server.load("ui/right.png"),
-    ));
     menu_data.button_entity.push(spawn_button(
         &mut commands,
         font.clone(),
@@ -153,24 +154,19 @@ fn setup_deck_menu(
         NORMAL_BUTTON,
     ));
 
+    // make deck grid
     for i in 0..globals.total_decks {
         // set deck color to normal, otherwise make it disabled
         let mut color = UiColor::default();
-        let deck_num = i;
 
-        if enabled_json.check_disabled(&deck_num) {
+        if enabled_json.check_disabled(&i) {
             color = DISABLE_DECK.into();
         } else {
         }
-
-        let back = deck_backs.backs.get(deck_num).unwrap();
-        menu_data.button_entity.push(spawn_back_grid(
-            &mut commands,
-            back.clone(),
-            i,
-            deck_num,
-            color,
-        ));
+        let back = deck_backs.backs.get(i).unwrap();
+        menu_data
+            .button_entity
+            .push(spawn_back_grid(&mut commands, back.clone(), i, i, color));
     }
 }
 
@@ -190,52 +186,22 @@ fn setup_pre_game(
     asset_server: Res<AssetServer>,
     mut menu_data: ResMut<MenuData>,
     enabled_json: Res<EnabledJson>,
-    mut globals: ResMut<GameGlobals>,
     deck_backs: Res<DeckBacks>,
     mut current_run_json: ResMut<CurrentRunJson>,
 ) {
-    globals.decks_per_game = globals.total_decks - enabled_json.disabled.len();
-
-    globals.decks_per_game = globals.total_decks - enabled_json.disabled.len();
-
-    //let size = Vec2::new(250.0, 100.0);
-
     let font = asset_server.load("fonts/Roboto.ttf");
 
     let text = spawn_main_text(
         &mut commands,
-        format!("Select {} decks!", globals.decks_per_game).as_str(),
+        format!("Select {} decks!", enabled_json.enabled.len()).as_str(),
         font.clone(),
         -120.0,
     );
 
-    commands.entity(text).insert(Scrollable {}); // make this scroll with the cards. looks super weird otherwise
+    menu_data
+        .button_entity
+        .push(commands.entity(text).insert(Scrollable {}).id()); // make this scroll with the cards. looks super weird otherwise
 
-    menu_data.button_entity.push(text);
-
-    menu_data.button_entity.push(spawn_button_img(
-        &mut commands,
-        Vec2::new(200.0, 200.0),
-        40.0,
-        400.0,
-        MenuItems::Left,
-        asset_server.load("ui/left.png"),
-    ));
-
-    menu_data.button_entity.push(spawn_button_img(
-        &mut commands,
-        Vec2::new(200.0, 200.0),
-        1670.0, // somehow this is the rightmost part of the screen idk
-        400.0,
-        MenuItems::Right,
-        asset_server.load("ui/right.png"),
-    ));
-
-    let num_decks = globals.decks_per_game;
-
-    if num_decks < globals.decks_per_game {
-        globals.decks_per_game = num_decks;
-    }
     let mut i = 0;
     for j in enabled_json.enabled.iter() {
         current_run_json.enable_deck(*j);
@@ -259,14 +225,24 @@ pub fn spawn_back_grid(
     deck_num: usize,
     color: UiColor,
 ) -> Entity {
+    // start position
+    let start_y = 1350.0;
+    let start_x = -30.0;
+
+    // incrementers for next locations
+    let card_y = 400.0;
+    let card_x = 300.0;
+
     let mut mulx = 1.0;
     let mut muly = 1.0;
+
+    // calculate multipliers based on how many iterations have passed
     for i in 0..=index {
         mulx += 1.0;
-        if i % 4 == 0 {
+        if i % NUM_COLLUMNS == 0 {
             // for every row
             mulx = 1.0;
-            muly *= 4.0;
+            muly += 1.0;
         }
     }
 
@@ -277,8 +253,8 @@ pub fn spawn_back_grid(
                 size: Size::new(Val::Px(210.0), Val::Px(300.0)),
                 position_type: PositionType::Absolute,
                 position: Rect {
-                    bottom: Val::Px(700.0 - (muly * 40.0)),
-                    left: Val::Px(100.0 + (300.0 * mulx)),
+                    bottom: Val::Px(start_y - (card_y * muly)),
+                    left: Val::Px(start_x + (card_x * mulx)),
                     ..Default::default()
                 },
                 justify_content: JustifyContent::Center,

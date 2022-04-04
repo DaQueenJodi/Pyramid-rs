@@ -1,9 +1,6 @@
 use std::path::Path;
 
-use bevy::{
-    input::mouse::{MouseScrollUnit, MouseWheel},
-    prelude::*,
-};
+use bevy::{input::mouse::MouseWheel, prelude::*};
 use bevy_debug_text_overlay::screen_print;
 
 use crate::{constants::*, handle_json::*, states_and_ui::*};
@@ -30,29 +27,22 @@ pub fn handle_choosing_cards(
                     // if its enabled, disable it
                     current_run_json.disable_deck(deck_num.num);
 
-                    screen_print!("disabled deck: {}", deck_num.num);
-
                     *color = Default::default();
                 } else {
                     // if its disabled, enable it
                     current_run_json.enable_deck(deck_num.num);
                     *color = ENABLED_DECK.into();
-
-                    screen_print!("enabled deck: {}", deck_num.num);
                 }
             } else {
                 if enabled_json.check_enabled(&deck_num.num) {
                     // if its enabled, disable it
                     enabled_json.disable(deck_num.num);
                     *color = DISABLE_DECK.into();
-
-                    screen_print!("disabled deck: {}", deck_num.num);
                 } else {
                     // if its disabled, enable it
-                    enabled_json.disable(deck_num.num);
+                    enabled_json.enable(deck_num.num);
 
                     *color = Default::default();
-                    screen_print!("enabled deck: {}", deck_num.num);
                 }
             }
         }
@@ -61,7 +51,6 @@ pub fn handle_choosing_cards(
 
 pub fn handle_ui_buttons(
     mut state: ResMut<State<GameState>>,
-    globals: Res<GameGlobals>,
     enabled_json: Res<EnabledJson>,
     mut current_run_json: ResMut<CurrentRunJson>,
     mut interaction_query: Query<
@@ -70,14 +59,6 @@ pub fn handle_ui_buttons(
     >,
 ) {
     for (interaction, mut color, menu_items) in interaction_query.iter_mut() {
-        let mut num_decks = 0;
-
-        match state.current() {
-            GameState::DeckSelection => num_decks = globals.total_decks, // total decks
-            GameState::PreGame => num_decks = globals.total_decks - enabled_json.disabled.len(), // enabled decks
-            _ => {}
-        }
-
         match *interaction {
             Interaction::Clicked => {
                 *color = PRESSED_BUTTON.into();
@@ -105,6 +86,19 @@ pub fn handle_ui_buttons(
                     MenuItems::Quit => state.set(GameState::Quit).unwrap(),
                     MenuItems::Save => {
                         enabled_json.update(); // store struct in file
+                    }
+                    MenuItems::Back => {
+                        match *state.current() {
+                            GameState::DeckSelection => state.set(GameState::MainMenu).unwrap(), // TODO make warning that asks you to save
+                            GameState::HowTo => state.set(GameState::MainMenu).unwrap(),
+                            GameState::InGame => {
+                                // TODO make dialogue that asks you to save or quit
+                                current_run_json.update();
+                                state.set(GameState::MainMenu).unwrap();
+                            }
+                            GameState::PreGame => state.set(GameState::MainMenu).unwrap(), // TODO make warning that asks you to save
+                            _ => {}
+                        }
                     }
                     _ => {}
                 }
@@ -237,9 +231,9 @@ macro_rules! spawn_button_grid {
     ) => { {
             let mut entities: Vec<Entity> = Vec::new();
 
-            let mut y = 100.0;
+            let mut _y = 100.0;
 
-            $( entities.push(spawn_button($commands, $font, $text,40.0, 820.0, y, Vec2::new(250.0, 100.0), $but_type, NORMAL_BUTTON)) ; y += 200.0;)+
+            $( entities.push(spawn_button($commands, $font, $text,40.0, 820.0, _y, Vec2::new(250.0, 100.0), $but_type, NORMAL_BUTTON)) ; _y += 200.0;)+
             entities
     }};
 }
@@ -249,8 +243,8 @@ pub fn scroll_deckmap(
     mut query: Query<&mut Style, With<Scrollable>>,
 ) {
     for mouse_wheel_event in mouse_wheel_events.iter() {
-        for (mut style) in query.iter_mut() {
-            style.position.bottom += mouse_wheel_event.y * 40.0; // move up/down depending on how much the mouse moved
+        for mut style in query.iter_mut() {
+            style.position.bottom += mouse_wheel_event.y * -40.0; // move up/down depending on how much the mouse moved (in reverse because it feels better)
         }
     }
 }

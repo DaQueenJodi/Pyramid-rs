@@ -20,8 +20,7 @@ pub const RESOLUTION: f32 = 16.0 / 9.0;
 pub const CARD_H: f32 = 406.0;
 pub const CARD_W: f32 = 580.0;
 
-pub const NUM_ROWS: usize = 4;
-pub const NUM_COLLUMNS: usize = 8;
+pub const NUM_COLLUMNS: usize = 5;
 
 pub const SCALE: f32 = 0.7;
 
