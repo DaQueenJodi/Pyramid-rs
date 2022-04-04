@@ -1,8 +1,10 @@
 use crate::{
+    actual_game::setup_actual_game,
     button_input::*,
     constants::*,
-    deck::{make_decks, DeckBacks},
+    deck::{make_decks, DeckBacks, Decks},
     handle_json::*,
+    setup_game,
 };
 use bevy::prelude::*;
 use bevy_debug_text_overlay::screen_print;
@@ -19,6 +21,7 @@ impl Plugin for MenuPlugin {
         })
         .add_system_set(SystemSet::on_enter(GameState::MainMenu).with_system(setup_main_menu))
         .add_system_set(SystemSet::on_enter(GameState::PreGame).with_system(setup_pre_game))
+        .add_system_set(SystemSet::on_enter(GameState::InGame).with_system(setup_actual_game))
         .add_system_set(
             SystemSet::on_update(GameState::DeckSelection).with_system(handle_choosing_cards),
         )
@@ -34,6 +37,7 @@ impl Plugin for MenuPlugin {
         )
         .add_system_set(
             SystemSet::on_update(GameState::PreGame)
+                .with_system(update_pre_game_text)
                 .with_system(scroll_deckmap)
                 .with_system(handle_ui_buttons)
                 .with_system(handle_choosing_cards),
@@ -69,6 +73,7 @@ pub struct MenuPlugin;
 
 #[derive(Clone, Copy, Component)]
 pub enum MenuItems {
+    Play,
     Back,
     Continue,
     NewGame,
@@ -187,33 +192,37 @@ fn setup_pre_game(
     mut menu_data: ResMut<MenuData>,
     enabled_json: Res<EnabledJson>,
     deck_backs: Res<DeckBacks>,
-    mut current_run_json: ResMut<CurrentRunJson>,
+    current_run_json: Res<CurrentRunJson>,
 ) {
     let font = asset_server.load("fonts/Roboto.ttf");
 
     let text = spawn_main_text(
         &mut commands,
-        format!("Select {} decks!", enabled_json.enabled.len()).as_str(),
+        format!("Select {} more decks!", enabled_json.enabled.len()).as_str(),
         font.clone(),
         -120.0,
     );
 
-    menu_data
-        .button_entity
-        .push(commands.entity(text).insert(Scrollable {}).id()); // make this scroll with the cards. looks super weird otherwise
+    menu_data.button_entity.push(
+        commands
+            .entity(text)
+            .insert(Scrollable {})
+            .insert(PreGameText {})
+            .id(),
+    ); // make this scroll with the cards. looks super weird otherwise. also make it trackable for updating in the future
 
     let mut i = 0;
     for j in enabled_json.enabled.iter() {
-        current_run_json.enable_deck(*j);
+        let mut color = Default::default();
+
+        if current_run_json.check_deck(j) {
+            color = ENABLED_DECK.into();
+        }
         let back = deck_backs.backs.get(*j).unwrap();
 
-        menu_data.button_entity.push(spawn_back_grid(
-            &mut commands,
-            back.clone(),
-            i,
-            *j,
-            UiColor::default(),
-        ));
+        menu_data
+            .button_entity
+            .push(spawn_back_grid(&mut commands, back.clone(), i, *j, color));
         i += 1;
     }
 }
@@ -273,4 +282,44 @@ pub fn spawn_back_grid(
 #[derive(Component)]
 pub struct Scrollable {
     // track the cards
+}
+
+#[derive(Component)]
+struct PreGameText {
+    // track the pre-game text so it can be updated
+}
+
+fn update_pre_game_text(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut query: Query<&mut Text, With<PreGameText>>,
+    enabled_json: Res<EnabledJson>,
+    current_run_json: Res<CurrentRunJson>,
+    mut menu_data: ResMut<MenuData>,
+) {
+    if !current_run_json.is_changed() {
+        // make sure this only runs when it needs to
+        return;
+    }
+
+    for mut text in query.iter_mut() {
+        text.sections[0].value = format!(
+            "Select {} more decks!",
+            enabled_json.enabled.len() - current_run_json.decks.len()
+        );
+    }
+    if enabled_json.enabled.len() - current_run_json.decks.len() == 0 {
+        // if done picking cards
+        menu_data.button_entity.push(spawn_button(
+            &mut commands,
+            asset_server.load("fonts/Roboto.ttf"),
+            "Start",
+            40.0,
+            0.0, // right between the cards
+            0.0,
+            Vec2::new(250.0, 100.0),
+            MenuItems::Play,
+            NORMAL_BUTTON,
+        ));
+    }
 }

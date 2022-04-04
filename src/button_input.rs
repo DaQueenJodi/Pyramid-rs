@@ -25,6 +25,7 @@ pub fn handle_choosing_cards(
             if *state.current() == GameState::PreGame {
                 if current_run_json.check_deck(&deck_num.num) {
                     // if its enabled, disable it
+
                     current_run_json.disable_deck(deck_num.num);
 
                     *color = Default::default();
@@ -87,6 +88,7 @@ pub fn handle_ui_buttons(
                     MenuItems::Save => {
                         enabled_json.update(); // store struct in file
                     }
+                    MenuItems::Play => state.set(GameState::InGame).unwrap(),
                     MenuItems::Back => {
                         match *state.current() {
                             GameState::DeckSelection => state.set(GameState::MainMenu).unwrap(), // TODO make warning that asks you to save

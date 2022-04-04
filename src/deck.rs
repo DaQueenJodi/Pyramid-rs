@@ -13,7 +13,7 @@ pub struct Deck {
     pub cards: usize,
     pub offset: usize,
 }
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DecksTogether {
     pub primary: Deck,
     pub secondary: Deck,
@@ -34,6 +34,7 @@ impl Plugin for DeckPlugin {
     }
 }
 
+#[derive(Debug)]
 pub struct Decks(pub Vec<DecksTogether>);
 
 pub fn make_decks(
@@ -45,11 +46,12 @@ pub fn make_decks(
 ) {
     let mut deck_vec: Vec<DecksTogether> = Vec::new();
 
-    let index = 0;
+    let mut index = 0;
 
     for curr_json in deck_data.decks.clone() {
         // if it is not enabled in the current run, dont add it
         if !current_run_json.check_deck(&index) {
+            index += 1;
             continue;
         }
 
@@ -67,6 +69,8 @@ pub fn make_decks(
         let atlas_handle = texture_atlases.add(atlas);
 
         deck_vec.push(gen_2_decks(curr_json.clone(), atlas_handle.clone()));
+
+        index += 1;
     }
     commands.insert_resource(Decks(deck_vec));
 }

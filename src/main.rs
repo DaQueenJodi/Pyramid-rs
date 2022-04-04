@@ -13,6 +13,7 @@ use handle_json::*;
 pub mod button_input;
 pub mod constants;
 use constants::*;
+pub mod actual_game;
 
 pub struct SpriteSheetIds {
     pub ids: HashMap<String, Handle<TextureAtlas>>,

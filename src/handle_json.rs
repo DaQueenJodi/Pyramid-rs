@@ -3,9 +3,6 @@ use std::{fs::File, path::Path};
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
-
-
-
 impl Plugin for JsonPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(EnabledJson {
@@ -20,8 +17,6 @@ impl Plugin for JsonPlugin {
         .insert_resource(DeckDataWrapper { decks: Vec::new() });
     }
 }
-
-
 
 impl DeckDataWrapper {
     pub fn load(&mut self) {
@@ -115,7 +110,6 @@ impl CurrentRunJson {
 }
 
 pub struct JsonPlugin;
-
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CurrentRunJson {
