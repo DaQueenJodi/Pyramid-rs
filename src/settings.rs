@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bevy::prelude::*;
 use configparser::ini::Ini;
 
@@ -57,6 +59,36 @@ impl Settings {
         self.settings.load("config/settings.ini").unwrap();
     }
 
+
+    
+
+    pub fn set(&self) {
+        let vertical = self.settings.getbool("UI", "vertical").unwrap().unwrap();
+
+        self.ui.insert(String::from("vertical"), vertical);
+
+        let color = self.settings.get("Buttons", "default").unwrap();
+        self.color.insert(String::from("default"), color);
+
+        let color = self.settings.get("Buttons", "cant_press").unwrap();
+        self.color.insert(String::from("cant_press"), color);
+
+        let color = self.settings.get("Buttons", "pressed").unwrap();
+        self.color.insert(String::from("pressed"), color);
+
+        let color = self.settings.get("Buttons", "hovered").unwrap();
+        self.color.insert(String::from("hovered"), color);
+
+        let color = self.settings.get("Buttons", "enabled").unwrap();
+        self.color.insert(String::from("enabled"), color);
+
+        let color = self.settings.get("Buttons", "disabled").unwrap();
+        self.color.insert(String::from("disabled"), color);
+
+        let color = self.settings.get("Background", "color").unwrap();
+        self.color.insert(String::from("clear"), color);
+    }
+
     pub fn update(&self) {
         self.settings.write("config/settings.ini").unwrap();
     }
@@ -65,6 +97,9 @@ impl Settings {
 #[derive(Debug, Clone)]
 pub struct Settings {
     pub settings: Ini, // store Ini config
+    pub ui: HashMap<String, bool>,
+    pub color: HashMap<String, String>,
+    pub layout: HashMap<String, f32>,
 }
 
 pub fn setup_settings(
@@ -74,7 +109,6 @@ pub fn setup_settings(
     settings: Res<Settings>,
     mut menu_data: ResMut<MenuData>,
 ) {
-
     last_menu.last = GameState::MainMenu;
 
     let font: Handle<Font> = asset_server.load("fonts/Roboto.ttf");
@@ -121,9 +155,8 @@ fn setup_submenu(
     asset_server: Res<AssetServer>,
     submenu: Res<SettingsPage>,
     mut menu_data: ResMut<MenuData>,
-    mut last_menu: ResMut<LastMenu>
+    mut last_menu: ResMut<LastMenu>,
 ) {
-
     match submenu.page {
         SettingsSubmenus::UI => {
             let font = asset_server.load("fonts/Roboto.ttf");

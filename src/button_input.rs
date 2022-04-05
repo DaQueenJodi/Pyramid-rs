@@ -111,15 +111,14 @@ pub fn handle_ui_buttons(
                                 state.set(GameState::MainMenu).unwrap();
                             }
                             _ => {
-                                if *state.current() != last_menu.last { // make sure you dont go to the same state, causes runtime error
+                                if *state.current() != last_menu.last {
+                                    // make sure you dont go to the same state, causes runtime error
                                     state.set(last_menu.last).unwrap()
                                 }
                             }
                         }
                     }
-                    MenuItems::Settings => {
-                        state.set(GameState::Settings).unwrap()
-                    }
+                    MenuItems::Settings => state.set(GameState::Settings).unwrap(),
                     _ => {}
                 }
             }

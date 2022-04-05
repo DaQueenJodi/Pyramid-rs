@@ -67,6 +67,7 @@ fn setup_game(
     enabled_json.load();
     deck_data.load();
     settings.load();
+    settings.set();
 
     for deck in 0..deck_data.decks.len() {
         if !enabled_json.check_disabled(&deck) && !enabled_json.check_enabled(&deck) {
