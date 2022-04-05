@@ -4,7 +4,8 @@ use crate::{
     constants::*,
     deck::{make_decks, DeckBacks, Decks},
     handle_json::*,
-    setup_game, settings::{setup_settings, SettingsItems},
+    settings::{setup_settings, SettingsItems},
+    setup_game,
 };
 use bevy::prelude::*;
 use bevy_debug_text_overlay::screen_print;
@@ -61,16 +62,14 @@ impl Plugin for MenuPlugin {
                 .with_system(scroll_backmap)
                 .with_system(handle_ui_buttons),
         )
-        .add_system_set(SystemSet::on_exit(GameState::DeckSelection).with_system(close_menu))
-        // Settings
-        .add_system_set(SystemSet::on_enter(GameState::Settings).with_system(setup_settings))
-        .add_system_set(SystemSet::on_update(GameState::Settings).with_system(handle_ui_buttons));
+        .add_system_set(SystemSet::on_exit(GameState::DeckSelection).with_system(close_menu));
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GameState {
     Settings,
+    SettingsSubmenu,
     MainMenu,
     HowTo,
     PreGame,
@@ -86,7 +85,6 @@ pub struct MainMenu;
 #[derive(Serialize, Deserialize)]
 
 pub struct MenuPlugin;
-
 
 #[derive(Clone, Copy, Component)]
 pub enum MenuItems {
@@ -224,7 +222,7 @@ fn setup_deck_menu(
 pub fn display_how_to() {}
 
 // delete every button/text we created
-fn close_menu(mut commands: Commands, mut menu_data: ResMut<MenuData>) {
+pub fn close_menu(mut commands: Commands, mut menu_data: ResMut<MenuData>) {
     for i in &menu_data.button_entity {
         commands.entity(*i).despawn_recursive();
     }

@@ -1,8 +1,21 @@
-use std::path::Path;
 use bevy::{input::mouse::MouseWheel, prelude::*};
 use bevy_debug_text_overlay::screen_print;
+use std::path::Path;
 
 use crate::{constants::*, handle_json::*, states_and_ui::*};
+
+pub struct LastMenu {
+    pub last: GameState,
+}
+pub struct ButtonInputPlugin;
+
+impl Plugin for ButtonInputPlugin {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(LastMenu {
+            last: GameState::MainMenu,
+        });
+    }
+}
 
 pub fn handle_choosing_cards(
     state: ResMut<State<GameState>>,
@@ -51,6 +64,7 @@ pub fn handle_choosing_cards(
 
 pub fn handle_ui_buttons(
     mut state: ResMut<State<GameState>>,
+    mut last_menu: ResMut<LastMenu>,
     enabled_json: Res<EnabledJson>,
     mut current_run_json: ResMut<CurrentRunJson>,
     mut interaction_query: Query<
@@ -82,24 +96,29 @@ pub fn handle_ui_buttons(
                         }
                         state.set(GameState::PreGame).unwrap();
                     }
-                    MenuItems::DeckSelection => state.set(GameState::DeckSelection).unwrap(),
-                    MenuItems::Quit => state.set(GameState::Quit).unwrap(),
-                    MenuItems::Save => {
-                        enabled_json.update(); // store struct in file
+                    MenuItems::DeckSelection => {
+                        last_menu.last = GameState::MainMenu;
+                        state.set(GameState::DeckSelection).unwrap()
                     }
+                    MenuItems::Quit => state.set(GameState::Quit).unwrap(),
+                    MenuItems::Save => enabled_json.update(), // store struct in file
                     MenuItems::Play => state.set(GameState::InGame).unwrap(),
                     MenuItems::Back => {
                         match *state.current() {
-                            GameState::DeckSelection => state.set(GameState::MainMenu).unwrap(), // TODO make warning that asks you to save
-                            GameState::HowTo => state.set(GameState::MainMenu).unwrap(),
                             GameState::InGame => {
                                 // TODO make dialogue that asks you to save or quit
                                 current_run_json.update();
                                 state.set(GameState::MainMenu).unwrap();
                             }
-                            GameState::PreGame => state.set(GameState::MainMenu).unwrap(), // TODO make warning that asks you to save
-                            _ => {}
+                            _ => {
+                                if *state.current() != last_menu.last { // make sure you dont go to the same state, causes runtime error
+                                    state.set(last_menu.last).unwrap()
+                                }
+                            }
                         }
+                    }
+                    MenuItems::Settings => {
+                        state.set(GameState::Settings).unwrap()
                     }
                     _ => {}
                 }
@@ -232,9 +251,9 @@ macro_rules! spawn_button_grid {
     ) => { {
             let mut entities: Vec<Entity> = Vec::new();
 
-            let mut _y = 100.0;
+            let mut _y = 700.0;
 
-            $( entities.push(spawn_button($commands, $font, $text,40.0, 820.0, _y, Vec2::new(250.0, 100.0), $but_type, NORMAL_BUTTON)) ; _y += 200.0;)+
+            $( entities.push(spawn_button($commands, $font, $text,40.0, 820.0, _y, Vec2::new(250.0, 100.0), $but_type, NORMAL_BUTTON)) ; _y -= 200.0;)+
             entities
     }};
 }

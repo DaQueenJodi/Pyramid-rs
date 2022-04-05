@@ -1,7 +1,8 @@
 #![allow(clippy::redundant_field_names)]
 use bevy::{prelude::*, window::WindowMode};
 use bevy_debug_text_overlay::OverlayPlugin;
-use settings::Settings;
+use button_input::ButtonInputPlugin;
+use settings::{Settings, SettingsPlugin};
 use std::collections::HashMap;
 pub mod deck;
 use deck::*;
@@ -46,6 +47,8 @@ fn main() {
         .add_plugin(MenuPlugin)
         .add_plugin(JsonPlugin)
         .add_plugin(StaticMut)
+        .add_plugin(SettingsPlugin)
+        .add_plugin(ButtonInputPlugin)
         .add_startup_system(spawn_camera)
         .add_startup_system(setup_game)
         .run();
