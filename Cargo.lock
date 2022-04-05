@@ -722,6 +722,7 @@ dependencies = [
  "bevy-debug-text-overlay",
  "bevy-inspector-egui",
  "bevy_loading",
+ "configparser",
  "serde",
  "serde_json",
 ]
@@ -1078,6 +1079,12 @@ checksum = "30ed07550be01594c6026cff2a1d7fe9c8f683caa798e12b68694ac9e88286a3"
 dependencies = [
  "cache-padded",
 ]
+
+[[package]]
+name = "configparser"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06821ea598337a8412cf47c5b71c3bc694a7f0aed188ac28b836fab164a2c202"
 
 [[package]]
 name = "console_error_panic_hook"

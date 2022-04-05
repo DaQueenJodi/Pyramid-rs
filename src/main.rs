@@ -1,6 +1,7 @@
 #![allow(clippy::redundant_field_names)]
 use bevy::{prelude::*, window::WindowMode};
 use bevy_debug_text_overlay::OverlayPlugin;
+use settings::Settings;
 use std::collections::HashMap;
 pub mod deck;
 use deck::*;
@@ -14,7 +15,7 @@ pub mod button_input;
 pub mod constants;
 use constants::*;
 pub mod actual_game;
-
+pub mod settings;
 pub struct SpriteSheetIds {
     pub ids: HashMap<String, Handle<TextureAtlas>>,
 }
@@ -55,9 +56,14 @@ fn spawn_camera(mut commands: Commands) {
     commands.spawn_bundle(UiCameraBundle::default());
 }
 
-fn setup_game(mut enabled_json: ResMut<EnabledJson>, mut deck_data: ResMut<DeckDataWrapper>) {
+fn setup_game(
+    mut enabled_json: ResMut<EnabledJson>,
+    mut deck_data: ResMut<DeckDataWrapper>,
+    mut settings: ResMut<Settings>,
+) {
     enabled_json.load();
     deck_data.load();
+    settings.load();
 
     for deck in 0..deck_data.decks.len() {
         if !enabled_json.check_disabled(&deck) && !enabled_json.check_enabled(&deck) {

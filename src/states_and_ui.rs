@@ -4,7 +4,7 @@ use crate::{
     constants::*,
     deck::{make_decks, DeckBacks, Decks},
     handle_json::*,
-    setup_game,
+    setup_game, settings::{setup_settings, SettingsItems},
 };
 use bevy::prelude::*;
 use bevy_debug_text_overlay::screen_print;
@@ -19,9 +19,36 @@ impl Plugin for MenuPlugin {
             // used for keeping track of text/buttons so they can be despawned
             button_entity: Vec::new(),
         })
-        .add_system_set(SystemSet::on_enter(GameState::MainMenu).with_system(setup_main_menu))
+        // MainMenu
+        .add_system_set(
+            SystemSet::on_enter(GameState::MainMenu)
+                .with_system(setup_main_menu)
+                .with_system(despawn_arrow),
+        )
+        .add_system_set(SystemSet::on_update(GameState::MainMenu).with_system(handle_ui_buttons))
+        .add_system_set(
+            SystemSet::on_exit(GameState::MainMenu)
+                .with_system(close_menu)
+                .with_system(spawn_back_arrow),
+        )
+        // PreGame
         .add_system_set(SystemSet::on_enter(GameState::PreGame).with_system(setup_pre_game))
+        .add_system_set(
+            SystemSet::on_update(GameState::PreGame)
+                .with_system(update_pre_game_text)
+                .with_system(scroll_backmap)
+                .with_system(handle_ui_buttons)
+                .with_system(handle_choosing_cards),
+        )
+        .add_system_set(
+            SystemSet::on_exit(GameState::PreGame)
+                .with_system(close_menu)
+                .with_system(make_decks),
+        )
+        // InGame
         .add_system_set(SystemSet::on_enter(GameState::InGame).with_system(setup_actual_game))
+        .add_system_set(SystemSet::on_update(GameState::InGame).with_system(scroll_gamemap))
+        // DeckSelection
         .add_system_set(
             SystemSet::on_update(GameState::DeckSelection).with_system(handle_choosing_cards),
         )
@@ -29,31 +56,21 @@ impl Plugin for MenuPlugin {
         .add_system_set(
             SystemSet::on_update(GameState::DeckSelection).with_system(handle_choosing_cards),
         )
-        .add_system_set(SystemSet::on_update(GameState::MainMenu).with_system(handle_ui_buttons))
         .add_system_set(
             SystemSet::on_update(GameState::DeckSelection)
-                .with_system(scroll_deckmap)
+                .with_system(scroll_backmap)
                 .with_system(handle_ui_buttons),
         )
-        .add_system_set(
-            SystemSet::on_update(GameState::PreGame)
-                .with_system(update_pre_game_text)
-                .with_system(scroll_deckmap)
-                .with_system(handle_ui_buttons)
-                .with_system(handle_choosing_cards),
-        )
-        .add_system_set(SystemSet::on_exit(GameState::MainMenu).with_system(close_menu))
         .add_system_set(SystemSet::on_exit(GameState::DeckSelection).with_system(close_menu))
-        .add_system_set(
-            SystemSet::on_exit(GameState::PreGame)
-                .with_system(close_menu)
-                .with_system(make_decks),
-        );
+        // Settings
+        .add_system_set(SystemSet::on_enter(GameState::Settings).with_system(setup_settings))
+        .add_system_set(SystemSet::on_update(GameState::Settings).with_system(handle_ui_buttons));
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GameState {
+    Settings,
     MainMenu,
     HowTo,
     PreGame,
@@ -62,7 +79,6 @@ pub enum GameState {
     DeckSelection,
     Left,
     Right,
-
     Loading,
 }
 #[derive(Component)]
@@ -71,8 +87,11 @@ pub struct MainMenu;
 
 pub struct MenuPlugin;
 
+
 #[derive(Clone, Copy, Component)]
 pub enum MenuItems {
+    SettingsItems(SettingsItems),
+    Settings,
     Play,
     Back,
     Continue,
@@ -90,8 +109,35 @@ pub struct DeckNumber {
     pub num: usize,
 }
 
-struct MenuData {
-    button_entity: Vec<Entity>,
+pub struct MenuData {
+    pub button_entity: Vec<Entity>,
+}
+
+#[derive(Component)]
+struct ArrowTracker {
+    // only used to track the arrow entity for deltion
+    entity: Entity,
+}
+
+fn spawn_back_arrow(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let arrow = spawn_button_img(
+        &mut commands,
+        Vec2::new(100.0, 100.0),
+        100.0,
+        900.0,
+        MenuItems::Back,
+        asset_server.load("ui/back_arrow.png"),
+    );
+
+    commands
+        .entity(arrow)
+        .insert(ArrowTracker { entity: arrow });
+}
+
+fn despawn_arrow(mut commands: Commands, query: Query<&ArrowTracker>) {
+    for arrow in query.iter() {
+        commands.entity(arrow.entity).despawn_recursive();
+    }
 }
 
 fn setup_main_menu(
@@ -100,15 +146,6 @@ fn setup_main_menu(
     mut menu_data: ResMut<MenuData>,
     mut enabled_json: ResMut<EnabledJson>,
 ) {
-    spawn_button_img(
-        &mut commands,
-        Vec2::new(150.0, 150.0),
-        100.0,
-        800.0,
-        MenuItems::Back,
-        asset_server.load("ui/back_arrow.png"),
-    );
-
     enabled_json.load(); // load saved enabled decks
 
     let font: Handle<Font> = asset_server.load("fonts/Roboto.ttf");
@@ -130,6 +167,15 @@ fn setup_main_menu(
     ) {
         menu_data.button_entity.push(i);
     }
+
+    menu_data.button_entity.push(spawn_button_img(
+        &mut commands,
+        Vec2::new(100.0, 100.0),
+        100.0,
+        900.0,
+        MenuItems::Settings,
+        asset_server.load("ui/settings_cog.png"),
+    ))
 }
 
 fn setup_deck_menu(
@@ -310,16 +356,13 @@ fn update_pre_game_text(
     }
     if enabled_json.enabled.len() - current_run_json.decks.len() == 0 {
         // if done picking cards
-        menu_data.button_entity.push(spawn_button(
+        menu_data.button_entity.push(spawn_button_img(
             &mut commands,
-            asset_server.load("fonts/Roboto.ttf"),
-            "Start",
+            Vec2::new(100.0, 100.0),
             40.0,
-            0.0, // right between the cards
             0.0,
-            Vec2::new(250.0, 100.0),
             MenuItems::Play,
-            NORMAL_BUTTON,
+            asset_server.load("ui/green_checkmark.png"),
         ));
     }
 }

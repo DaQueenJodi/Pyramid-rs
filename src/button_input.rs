@@ -1,5 +1,4 @@
 use std::path::Path;
-
 use bevy::{input::mouse::MouseWheel, prelude::*};
 use bevy_debug_text_overlay::screen_print;
 
@@ -240,13 +239,26 @@ macro_rules! spawn_button_grid {
     }};
 }
 
-pub fn scroll_deckmap(
+// scroll the pre-game and deck selection menus
+pub fn scroll_backmap(
     mut mouse_wheel_events: EventReader<MouseWheel>,
     mut query: Query<&mut Style, With<Scrollable>>,
 ) {
     for mouse_wheel_event in mouse_wheel_events.iter() {
         for mut style in query.iter_mut() {
-            style.position.bottom += mouse_wheel_event.y * -40.0; // move up/down depending on how much the mouse moved (in reverse because it feels better)
+            style.position.bottom += mouse_wheel_event.y * -70.0; // move up/down depending on how much the mouse moved (in reverse because it feels better)
+        }
+    }
+}
+
+// scrolls the map during the actual game
+pub fn scroll_gamemap(
+    mut mouse_wheel_events: EventReader<MouseWheel>,
+    mut query: Query<&mut Transform, With<Scrollable>>,
+) {
+    for mouse_wheel_event in mouse_wheel_events.iter() {
+        for mut transform in query.iter_mut() {
+            transform.translation.y += mouse_wheel_event.y * -70.0; // move up/down depending on how much the mouse moved (in reverse because it feels better)
         }
     }
 }

@@ -12,6 +12,7 @@ bevy_loading = "0.2.0"
 bevy-debug-text-overlay = "1.0"
 serde = { version = "1.0.136", features = ["derive"] }
 serde_json = "1.0.79"
+configparser = "3.0.0"
 
 # [workspace.metadata.dylint]
 # libraries = [

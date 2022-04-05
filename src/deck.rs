@@ -4,6 +4,7 @@ use std::{fs, path::Path};
 
 use crate::{
     handle_json::{CurrentRunJson, DeckData, DeckDataWrapper},
+    states_and_ui::{DeckNumber, Scrollable},
     CARD_H, CARD_W, SCALE,
 };
 
@@ -57,7 +58,7 @@ pub fn make_decks(
 
         // if file hasnt already made a handle
 
-        let image: Handle<Image> = assets.load(Path::new(&curr_json.file));
+        let image: Handle<Image> = assets.load(&curr_json.file);
 
         let atlas = TextureAtlas::from_grid_with_padding(
             image,
@@ -88,8 +89,8 @@ pub fn spawn_card(
     } else {
         deck = &decks.0.get(deck_num).unwrap().secondary;
     }
-    let mut sprite = TextureAtlasSprite::new(index + deck.offset);
-    sprite.custom_size = Some(Vec2::new(CARD_H * SCALE, CARD_W * SCALE));
+    let sprite = TextureAtlasSprite::new(index + deck.offset);
+    //sprite.custom_size = Some(Vec2::new(CARD_H * SCALE, CARD_W * SCALE));
 
     commands
         .spawn_bundle(SpriteSheetBundle {
@@ -102,6 +103,8 @@ pub fn spawn_card(
             },
             ..Default::default()
         })
+        .insert(DeckNumber { num: index })
+        .insert(Scrollable {}) // TODO make it not forced to be scrollable, this is just convenient
         .id()
 }
 
