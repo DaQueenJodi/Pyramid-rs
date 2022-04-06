@@ -721,6 +721,7 @@ dependencies = [
  "bevy",
  "bevy-debug-text-overlay",
  "bevy-inspector-egui",
+ "bevy_egui",
  "bevy_loading",
  "configparser",
  "serde",

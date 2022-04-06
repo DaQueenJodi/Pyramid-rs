@@ -1,10 +1,12 @@
-use std::collections::HashMap;
+
+
+use bevy_egui::{egui, EguiContext};
 
 use bevy::prelude::*;
 use configparser::ini::Ini;
 
 use crate::{
-    button_input::{handle_ui_buttons, spawn_button, spawn_button_img, spawn_main_text, LastMenu},
+    button_input::{handle_ui_buttons, spawn_button, spawn_main_text, LastMenu},
     constants::*,
     spawn_button_grid,
     states_and_ui::{close_menu, GameState, MenuData, MenuItems},
@@ -53,7 +55,6 @@ impl Plugin for SettingsPlugin {
                 .with_system(handle_settings_input),
         )
         .add_system_set(SystemSet::on_exit(GameState::Settings).with_system(close_menu))
-        .add_system_set(SystemSet::on_enter(GameState::SettingsSubmenu).with_system(setup_submenu))
         .add_system_set(
             SystemSet::on_update(GameState::SettingsSubmenu)
                 .with_system(handle_ui_buttons)
@@ -111,9 +112,7 @@ pub fn setup_settings(
     mut last_menu: ResMut<LastMenu>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    settings: Res<Settings>,
     mut menu_data: ResMut<MenuData>,
-    colors: Res<Colors>,
 ) {
     last_menu.last = GameState::MainMenu;
 
@@ -156,14 +155,20 @@ fn handle_settings_input(
     }
 }
 
-fn setup_submenu(
+pub fn setup_submenu(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     submenu: Res<SettingsPage>,
     mut menu_data: ResMut<MenuData>,
     mut last_menu: ResMut<LastMenu>,
-    colors: Res<Colors>,
+    mut egui_context: ResMut<EguiContext>
+
 ) {
+
+    egui::Window::new("Hello").show(egui_context.ctx_mut(), |ui| {
+        ui.label("world");
+    });
+
     match submenu.page {
         SettingsSubmenus::UI => {
             let font = asset_server.load("fonts/Roboto.ttf");

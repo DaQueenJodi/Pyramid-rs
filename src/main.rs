@@ -1,15 +1,14 @@
 #![allow(clippy::redundant_field_names)]
-use bevy::render::color::Color::*;
 use bevy::{prelude::*, window::WindowMode};
 use bevy_debug_text_overlay::OverlayPlugin;
+use bevy_egui::EguiPlugin;
 use button_input::ButtonInputPlugin;
-use settings::{Colors, LayoutSettings, Settings, SettingsPlugin, UiSettings};
+use settings::{Colors, LayoutSettings, Settings, SettingsPlugin, setup_submenu};
 use std::collections::HashMap; // color constants for get_color()
 
 pub mod deck;
 use deck::*;
 pub mod debug;
-use debug::*;
 pub mod states_and_ui;
 use states_and_ui::*;
 pub mod handle_json;
@@ -45,13 +44,15 @@ fn main() {
             font_size: 32.0,
             ..Default::default()
         })
-        .add_plugin(DebugPlugin)
+        //.add_plugin(DebugPlugin)
+        .add_plugin(EguiPlugin)
         .add_plugin(DeckPlugin)
         .add_plugin(MenuPlugin)
         .add_plugin(JsonPlugin)
         .add_plugin(StaticMut)
         .add_plugin(SettingsPlugin)
         .add_plugin(ButtonInputPlugin)
+        .add_system(setup_submenu)
         .add_startup_system(spawn_camera)
         .add_startup_system(setup_game)
         .run();
@@ -85,7 +86,11 @@ fn setup_game(
 
     colors.normal_button = get_color(&default_button).unwrap();
 
-    println!("{:#?}", colors.normal_button );
+
+    let hovered_button = settings.settings.get("Colors", "hovered_button").unwrap();
+
+    colors.hovered_button = get_color(&hovered_button).unwrap();
+
 
 
     for deck in 0..deck_data.decks.len() {
@@ -99,7 +104,6 @@ fn setup_game(
 
 fn get_color(color: &str) -> Result<Color, String> {
     match color {
-        // for lazyness
         "RED" => Ok(Color::RED),
         "ORANGE" => Ok(Color::ORANGE),
         "YELLOW" => Ok(Color::YELLOW),

@@ -2,13 +2,11 @@ use crate::{
     actual_game::setup_actual_game,
     button_input::*,
     constants::{GameGlobals, NUM_COLLUMNS},
-    deck::{make_decks, DeckBacks, Decks},
+    deck::{make_decks, DeckBacks},
     handle_json::*,
-    settings::{setup_settings, Colors, Settings, SettingsItems},
-    setup_game,
+    settings::{ Colors,  SettingsItems},
 };
 use bevy::prelude::*;
-use bevy_debug_text_overlay::screen_print;
 use bevy_inspector_egui::Inspectable;
 use serde::{Deserialize, Serialize};
 
@@ -143,7 +141,6 @@ fn setup_main_menu(
     asset_server: Res<AssetServer>,
     mut menu_data: ResMut<MenuData>,
     mut enabled_json: ResMut<EnabledJson>,
-    colors: Res<Colors>,
 ) {
     enabled_json.load(); // load saved enabled decks
 
@@ -186,10 +183,6 @@ fn setup_deck_menu(
     deck_backs: Res<DeckBacks>,
     colors: Res<Colors>,
 ) {
-
-    println!("balls");
-
-    println!("{:#?}", colors.normal_button );
 
     let font: Handle<Font> = asset_server.load("fonts/Roboto.ttf");
     let size = Vec2::new(250.0, 100.0);
