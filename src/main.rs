@@ -1,9 +1,11 @@
 #![allow(clippy::redundant_field_names)]
+use bevy::render::color::Color::*;
 use bevy::{prelude::*, window::WindowMode};
 use bevy_debug_text_overlay::OverlayPlugin;
 use button_input::ButtonInputPlugin;
-use settings::{Settings, SettingsPlugin};
-use std::collections::HashMap;
+use settings::{Colors, LayoutSettings, Settings, SettingsPlugin, UiSettings};
+use std::collections::HashMap; // color constants for get_color()
+
 pub mod deck;
 use deck::*;
 pub mod debug;
@@ -17,6 +19,7 @@ pub mod constants;
 use constants::*;
 pub mod actual_game;
 pub mod settings;
+
 pub struct SpriteSheetIds {
     pub ids: HashMap<String, Handle<TextureAtlas>>,
 }
@@ -63,11 +66,27 @@ fn setup_game(
     mut enabled_json: ResMut<EnabledJson>,
     mut deck_data: ResMut<DeckDataWrapper>,
     mut settings: ResMut<Settings>,
+    mut layout: ResMut<LayoutSettings>,
+    mut colors: ResMut<Colors>,
 ) {
     enabled_json.load();
     deck_data.load();
     settings.load();
-    settings.set();
+
+    let vertical = settings
+        .settings
+        .getbool("Layout", "vertical")
+        .unwrap()
+        .unwrap();
+
+    layout.vertical = vertical;
+
+    let default_button = settings.settings.get("Colors", "default_button").unwrap();
+
+    colors.normal_button = get_color(&default_button).unwrap();
+
+    println!("{:#?}", colors.normal_button );
+
 
     for deck in 0..deck_data.decks.len() {
         if !enabled_json.check_disabled(&deck) && !enabled_json.check_enabled(&deck) {
@@ -76,4 +95,18 @@ fn setup_game(
         }
     }
     enabled_json.update();
+}
+
+fn get_color(color: &str) -> Result<Color, String> {
+    match color {
+        // for lazyness
+        "RED" => Ok(Color::RED),
+        "ORANGE" => Ok(Color::ORANGE),
+        "YELLOW" => Ok(Color::YELLOW),
+        "GREEN" => Ok(Color::GREEN),
+        "BLUE" => Ok(Color::BLUE),
+        "PURPLE" => Ok(Color::PURPLE),
+        "PINK" => Ok(Color::PINK),
+        _ => Err(format!("welp, bad color: {}", color)),
+    }
 }

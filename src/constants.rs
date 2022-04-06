@@ -9,9 +9,9 @@ use crate::handle_json::DeckDataWrapper;
 pub const NORMAL_BUTTON: Color = Color::rgb(0.45, 0.45, 0.45);
 pub const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 pub const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35); // green
-pub const CANT_PRESS_BUTTON: Color = crate::CLEAR;
+pub const DISABLED_BUTTON: Color = Color::rgb(0.1, 0.1, 0.1); // same as clear
 
-pub const DISABLE_DECK: Color = Color::rgb(0.75, 0.35, 0.35); // red
+pub const DISABLED_DECK: Color = Color::rgb(0.75, 0.35, 0.35); // red
 pub const ENABLED_DECK: Color = Color::rgb(0.35, 0.75, 0.35); // green
 
 pub const CLEAR: Color = Color::rgb(0.1, 0.1, 0.1);

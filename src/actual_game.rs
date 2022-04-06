@@ -1,6 +1,6 @@
 use crate::constants::*;
 use crate::deck::spawn_card;
-use crate::settings::Settings;
+use crate::settings::{LayoutSettings, Settings};
 use crate::{deck::Decks, handle_json::CurrentRunJson, states_and_ui::spawn_back_grid};
 use bevy::prelude::*;
 
@@ -8,15 +8,11 @@ pub fn setup_actual_game(
     mut commands: Commands,
     current_run_json: Res<CurrentRunJson>,
     mut decks: ResMut<Decks>,
-    settings: Res<Settings>,
+    layout: Res<LayoutSettings>,
 ) {
-    // if vertical is true; increase starty, decrease mulx_multiplier, and make number of collumns 4 instead of 4
+    let vertical = layout.vertical;
 
-    let vertical = settings
-        .settings
-        .getbool("UI", "vertical")
-        .unwrap()
-        .unwrap();
+    // if vertical is true; increase starty, decrease mulx_multiplier, and make number of collumns 4 instead of 4
 
     let startx = match vertical {
         // controls the starting x position
@@ -25,12 +21,12 @@ pub fn setup_actual_game(
     };
     let starty = match vertical {
         // controls the starting y position
-        true => 1500.0,
-        false => 800.0,
+        true => 900.0,
+        false => 900.0,
     };
 
     let mut mulx = 0.0;
-    let mut muly = 0.0;
+    let mut muly = -1.0;
 
     let mulx_adder = match vertical {
         // controls how much is added to mulx every iteration
@@ -46,15 +42,12 @@ pub fn setup_actual_game(
     let card_x = 400.0;
     let card_y = 600.0;
 
-    let collumns = match vertical {
-        true => 4,
-        false => 2,
-    };
+    let collumns = 2;
 
     for deck in 0..current_run_json.decks.len() {
         let index_img = 0; // TODO make this a random number
 
-        if deck % collumns == 0 {
+        if !vertical && deck != 0 && deck % collumns == 0 {
             mulx = 0.0;
             muly -= muly_minuser;
         }

@@ -2,7 +2,7 @@ use bevy::{input::mouse::MouseWheel, prelude::*};
 use bevy_debug_text_overlay::screen_print;
 use std::path::Path;
 
-use crate::{constants::*, handle_json::*, states_and_ui::*};
+use crate::{constants::*, handle_json::*, settings::{LayoutSettings, Colors}, states_and_ui::*};
 
 pub struct LastMenu {
     pub last: GameState,
@@ -50,7 +50,7 @@ pub fn handle_choosing_cards(
                 if enabled_json.check_enabled(&deck_num.num) {
                     // if its enabled, disable it
                     enabled_json.disable(deck_num.num);
-                    *color = DISABLE_DECK.into();
+                    *color = DISABLED_DECK.into();
                 } else {
                     // if its disabled, enable it
                     enabled_json.enable(deck_num.num);
@@ -66,6 +66,7 @@ pub fn handle_ui_buttons(
     mut state: ResMut<State<GameState>>,
     mut last_menu: ResMut<LastMenu>,
     enabled_json: Res<EnabledJson>,
+    colors: Res<Colors>,
     mut current_run_json: ResMut<CurrentRunJson>,
     mut interaction_query: Query<
         (&Interaction, &mut UiColor, &MenuItems),
@@ -82,7 +83,7 @@ pub fn handle_ui_buttons(
                     MenuItems::Continue => {
                         if !Path::new("config/current_run.json").exists() {
                             // check if save data exists
-                            *color = CANT_PRESS_BUTTON.into();
+                            *color = colors.disabled_button.into();
                         } else {
                             current_run_json.load();
                             state.set(GameState::PreGame).unwrap();
@@ -124,10 +125,10 @@ pub fn handle_ui_buttons(
             }
 
             Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
+                *color = colors.hovered_button.into();
             }
             Interaction::None => {
-                *color = NORMAL_BUTTON.into();
+                *color = colors.normal_button.into();
             }
         }
     }
@@ -142,7 +143,6 @@ pub fn spawn_button(
     posy: f32,
     size: Vec2,
     button_type: MenuItems,
-    color: Color,
 ) -> Entity {
     commands
         .spawn_bundle(ButtonBundle {
@@ -158,7 +158,6 @@ pub fn spawn_button(
                 align_items: AlignItems::Center,
                 ..Default::default()
             },
-            color: color.into(),
             ..Default::default()
         })
         .with_children(|parent| {
@@ -252,7 +251,7 @@ macro_rules! spawn_button_grid {
 
             let mut _y = 700.0;
 
-            $( entities.push(spawn_button($commands, $font, $text,40.0, 820.0, _y, Vec2::new(250.0, 100.0), $but_type, NORMAL_BUTTON)) ; _y -= 200.0;)+
+            $( entities.push(spawn_button($commands, $font, $text,40.0, 820.0, _y, Vec2::new(250.0, 100.0), $but_type)) ; _y -= 200.0;)+
             entities
     }};
 }
@@ -272,11 +271,18 @@ pub fn scroll_backmap(
 // scrolls the map during the actual game
 pub fn scroll_gamemap(
     mut mouse_wheel_events: EventReader<MouseWheel>,
+    layout: Res<LayoutSettings>,
     mut query: Query<&mut Transform, With<Scrollable>>,
 ) {
+    let mul = 70.0;
+
     for mouse_wheel_event in mouse_wheel_events.iter() {
         for mut transform in query.iter_mut() {
-            transform.translation.y += mouse_wheel_event.y * -70.0; // move up/down depending on how much the mouse moved (in reverse because it feels better)
+            if !layout.vertical {
+                transform.translation.y += mouse_wheel_event.y * -mul; // move up/down depending on how much the mouse moved (in reverse because it feels better)
+            } else {
+                transform.translation.x += mouse_wheel_event.y * mul;
+            }
         }
     }
 }

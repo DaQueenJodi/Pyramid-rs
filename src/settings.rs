@@ -31,9 +31,18 @@ pub struct SettingsPlugin;
 
 impl Plugin for SettingsPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(Settings {
+        app.insert_resource(Colors {
+            normal_button: NORMAL_BUTTON,
+            hovered_button: HOVERED_BUTTON,
+            pressed_button: PRESSED_BUTTON,
+            disabled_button: DISABLED_BUTTON,
+            disabled_deck: DISABLED_DECK,
+            enabled_deck: ENABLED_DECK,
+        })
+        .insert_resource(Settings {
             settings: Ini::new(),
         })
+        .insert_resource(LayoutSettings { vertical: false })
         .insert_resource(SettingsPage {
             page: SettingsSubmenus::None,
         })
@@ -59,47 +68,43 @@ impl Settings {
         self.settings.load("config/settings.ini").unwrap();
     }
 
-
-    
-
-    pub fn set(&self) {
-        let vertical = self.settings.getbool("UI", "vertical").unwrap().unwrap();
-
-        self.ui.insert(String::from("vertical"), vertical);
-
-        let color = self.settings.get("Buttons", "default").unwrap();
-        self.color.insert(String::from("default"), color);
-
-        let color = self.settings.get("Buttons", "cant_press").unwrap();
-        self.color.insert(String::from("cant_press"), color);
-
-        let color = self.settings.get("Buttons", "pressed").unwrap();
-        self.color.insert(String::from("pressed"), color);
-
-        let color = self.settings.get("Buttons", "hovered").unwrap();
-        self.color.insert(String::from("hovered"), color);
-
-        let color = self.settings.get("Buttons", "enabled").unwrap();
-        self.color.insert(String::from("enabled"), color);
-
-        let color = self.settings.get("Buttons", "disabled").unwrap();
-        self.color.insert(String::from("disabled"), color);
-
-        let color = self.settings.get("Background", "color").unwrap();
-        self.color.insert(String::from("clear"), color);
-    }
-
     pub fn update(&self) {
         self.settings.write("config/settings.ini").unwrap();
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
+pub struct Colors {
+    pub normal_button: Color,
+    pub hovered_button: Color,
+    pub pressed_button: Color,
+    pub disabled_button: Color,
+
+    pub disabled_deck: Color,
+    pub enabled_deck: Color,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Background {
+    pub image: Handle<Image>,
+    pub color: Color,
+    pub use_image: bool,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct UiSettings {
+    pub colors: Colors,
+    pub background: Background,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct LayoutSettings {
+    pub vertical: bool,
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct Settings {
     pub settings: Ini, // store Ini config
-    pub ui: HashMap<String, bool>,
-    pub color: HashMap<String, String>,
-    pub layout: HashMap<String, f32>,
 }
 
 pub fn setup_settings(
@@ -108,6 +113,7 @@ pub fn setup_settings(
     asset_server: Res<AssetServer>,
     settings: Res<Settings>,
     mut menu_data: ResMut<MenuData>,
+    colors: Res<Colors>,
 ) {
     last_menu.last = GameState::MainMenu;
 
@@ -156,6 +162,7 @@ fn setup_submenu(
     submenu: Res<SettingsPage>,
     mut menu_data: ResMut<MenuData>,
     mut last_menu: ResMut<LastMenu>,
+    colors: Res<Colors>,
 ) {
     match submenu.page {
         SettingsSubmenus::UI => {

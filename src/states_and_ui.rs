@@ -1,10 +1,10 @@
 use crate::{
     actual_game::setup_actual_game,
     button_input::*,
-    constants::*,
+    constants::{GameGlobals, NUM_COLLUMNS},
     deck::{make_decks, DeckBacks, Decks},
     handle_json::*,
-    settings::{setup_settings, SettingsItems},
+    settings::{setup_settings, Colors, Settings, SettingsItems},
     setup_game,
 };
 use bevy::prelude::*;
@@ -143,6 +143,7 @@ fn setup_main_menu(
     asset_server: Res<AssetServer>,
     mut menu_data: ResMut<MenuData>,
     mut enabled_json: ResMut<EnabledJson>,
+    colors: Res<Colors>,
 ) {
     enabled_json.load(); // load saved enabled decks
 
@@ -158,10 +159,10 @@ fn setup_main_menu(
     for i in spawn_button_grid!(
         &mut commands,
         font.clone(),
-        (MenuItems::HowToPlay, "How To Play"),
-        (MenuItems::DeckSelection, "Deck Select"),
+        (MenuItems::Continue, "Continue"),
         (MenuItems::NewGame, "New Game"),
-        (MenuItems::Continue, "Continue")
+        (MenuItems::DeckSelection, "Deck Select"),
+        (MenuItems::HowToPlay, "How To Play")
     ) {
         menu_data.button_entity.push(i);
     }
@@ -183,7 +184,13 @@ fn setup_deck_menu(
     globals: ResMut<GameGlobals>,
     enabled_json: Res<EnabledJson>,
     deck_backs: Res<DeckBacks>,
+    colors: Res<Colors>,
 ) {
+
+    println!("balls");
+
+    println!("{:#?}", colors.normal_button );
+
     let font: Handle<Font> = asset_server.load("fonts/Roboto.ttf");
     let size = Vec2::new(250.0, 100.0);
     let text = spawn_main_text(&mut commands, "Deck Selection", font.clone(), -70.0);
@@ -200,7 +207,6 @@ fn setup_deck_menu(
         0.0,
         size,
         MenuItems::Save,
-        NORMAL_BUTTON,
     ));
 
     // make deck grid
@@ -209,7 +215,7 @@ fn setup_deck_menu(
         let mut color = UiColor::default();
 
         if enabled_json.check_disabled(&i) {
-            color = DISABLE_DECK.into();
+            color = colors.disabled_deck.into();
         } else {
         }
         let back = deck_backs.backs.get(i).unwrap();
@@ -237,6 +243,7 @@ fn setup_pre_game(
     enabled_json: Res<EnabledJson>,
     deck_backs: Res<DeckBacks>,
     current_run_json: Res<CurrentRunJson>,
+    colors: Res<Colors>,
 ) {
     let font = asset_server.load("fonts/Roboto.ttf");
 
@@ -260,7 +267,7 @@ fn setup_pre_game(
         let mut color = Default::default();
 
         if current_run_json.check_deck(j) {
-            color = ENABLED_DECK.into();
+            color = colors.enabled_deck.into();
         }
         let back = deck_backs.backs.get(*j).unwrap();
 
