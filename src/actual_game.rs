@@ -1,15 +1,25 @@
-
+use crate::button_input::spawn_main_text;
 use crate::deck::spawn_card;
 use crate::settings::LayoutSettings;
-use crate::{deck::Decks, handle_json::CurrentRunJson};
+use crate::{deck::Decks, handle_json::CurrentRunJson, DeckNumber};
 use bevy::prelude::*;
 
 pub fn setup_actual_game(
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     current_run_json: Res<CurrentRunJson>,
     mut decks: ResMut<Decks>,
     layout: Res<LayoutSettings>,
 ) {
+    let entity = spawn_main_text(
+        &mut commands,
+        "",
+        asset_server.load("fonts/Roboto.ttf"),
+        0.0,
+    );
+
+    commands.entity(entity).insert(ScoreString(()));
+
     let vertical = layout.vertical;
 
     // if vertical is true; increase starty, decrease mulx_multiplier, and make number of collumns 4 instead of 4
@@ -70,7 +80,7 @@ pub fn setup_actual_game(
             y -= card_y;
         }
 
-        spawn_card(
+        let entity = spawn_card(
             &mut commands,
             &mut decks,
             deck,
@@ -78,6 +88,25 @@ pub fn setup_actual_game(
             Vec3::new(x, y, 0.0),
             false,
         );
+
+        commands
+            .entity(entity)
+            .insert(Button)
+            .insert(Interaction::None)
+            .insert(DeckNumber { num: deck });
+
         mulx += mulx_adder;
     }
 }
+
+pub fn update_score(score: Res<Score>, mut query: Query<&mut Text, With<ScoreString>>) {
+    for mut text in query.iter_mut() {
+        text.sections[0].value = format!("Score: {}", score.0);
+    }
+}
+
+#[derive(Debug)]
+pub struct Score(pub i64);
+
+#[derive(Component)]
+pub struct ScoreString(pub ());

@@ -1,7 +1,5 @@
 
 
-use bevy_egui::{egui, EguiContext};
-
 use bevy::prelude::*;
 use configparser::ini::Ini;
 
@@ -161,10 +159,8 @@ pub fn setup_submenu(
     submenu: Res<SettingsPage>,
     mut menu_data: ResMut<MenuData>,
     mut last_menu: ResMut<LastMenu>,
-    mut egui_context: ResMut<EguiContext>
-
+    mut egui_context: ResMut<EguiContext>,
 ) {
-
     egui::Window::new("Hello").show(egui_context.ctx_mut(), |ui| {
         ui.label("world");
     });

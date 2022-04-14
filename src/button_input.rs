@@ -1,7 +1,12 @@
 use bevy::{input::mouse::MouseWheel, prelude::*};
 use std::path::Path;
 
-use crate::{constants::*, handle_json::*, settings::{LayoutSettings, Colors}, states_and_ui::*};
+use crate::{
+    constants::*,
+    handle_json::*,
+    settings::{Colors, LayoutSettings},
+    states_and_ui::*,
+};
 
 pub struct LastMenu {
     pub last: GameState,
@@ -281,6 +286,29 @@ pub fn scroll_gamemap(
                 transform.translation.y += mouse_wheel_event.y * -mul; // move up/down depending on how much the mouse moved (in reverse because it feels better)
             } else {
                 transform.translation.x += mouse_wheel_event.y * mul;
+            }
+        }
+    }
+}
+
+pub fn handle_ingame_input(
+    mut current_run_json: ResMut<CurrentRunJson>,
+    colors: Res<Colors>,
+    mut interaction_query: Query<
+        (&Interaction, &DeckNumber, &mut UiColor),
+        (Changed<Interaction>, With<Button>),
+    >,
+) {
+    for (interaction, deck_num, mut color) in interaction_query.iter_mut() {
+        if interaction == &Interaction::Clicked {
+            // if its enabled, disable it
+            // if its disabled it, enable it
+            if current_run_json.completed_decks[deck_num.num] {
+                current_run_json.complete_deck(deck_num.num);
+                *color = colors.disabled_deck.into();
+            } else {
+                current_run_json.decomplete_deck(deck_num.num);
+                *color = colors.enabled_deck.into();
             }
         }
     }

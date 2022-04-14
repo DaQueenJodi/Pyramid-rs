@@ -13,6 +13,7 @@ impl Plugin for JsonPlugin {
             score: 0,
             decks: Vec::new(),
             hand: Vec::new(),
+            completed_decks: Vec::new(),
         })
         .insert_resource(DeckDataWrapper { decks: Vec::new() });
     }
@@ -107,6 +108,14 @@ impl CurrentRunJson {
     pub fn enable_deck(&mut self, deck: usize) {
         self.decks.push(deck);
     }
+
+    pub fn complete_deck(&mut self, deck: usize) {
+        self.completed_decks[deck] = true;
+    }
+
+    pub fn decomplete_deck(&mut self, deck: usize) {
+        self.completed_decks[deck] = false;
+    }
 }
 
 pub struct JsonPlugin;
@@ -114,6 +123,7 @@ pub struct JsonPlugin;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CurrentRunJson {
     pub decks: Vec<usize>,
+    pub completed_decks: Vec<bool>, // map of compeleted decks
     pub score: usize,
     pub hand: Vec<usize>,
 }

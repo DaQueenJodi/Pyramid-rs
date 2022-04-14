@@ -1,9 +1,10 @@
 #![allow(clippy::redundant_field_names)]
+use actual_game::Score;
 use bevy::{prelude::*, window::WindowMode};
 use bevy_debug_text_overlay::OverlayPlugin;
-use bevy_egui::EguiPlugin;
 use button_input::ButtonInputPlugin;
-use settings::{Colors, LayoutSettings, Settings, SettingsPlugin, setup_submenu};
+use debug::DebugPlugin;
+use settings::{setup_submenu, Colors, LayoutSettings, Settings, SettingsPlugin};
 use std::collections::HashMap; // color constants for get_color()
 
 pub mod deck;
@@ -28,6 +29,7 @@ fn main() {
         .insert_resource(SpriteSheetIds {
             ids: HashMap::new(),
         })
+        .insert_resource(Score(49))
         .insert_resource(ClearColor(CLEAR))
         .insert_resource(WindowDescriptor {
             width: 960.0,
@@ -44,8 +46,7 @@ fn main() {
             font_size: 32.0,
             ..Default::default()
         })
-        //.add_plugin(DebugPlugin)
-        .add_plugin(EguiPlugin)
+        .add_plugin(DebugPlugin)
         .add_plugin(DeckPlugin)
         .add_plugin(MenuPlugin)
         .add_plugin(JsonPlugin)
@@ -86,12 +87,9 @@ fn setup_game(
 
     colors.normal_button = get_color(&default_button).unwrap();
 
-
     let hovered_button = settings.settings.get("Colors", "hovered_button").unwrap();
 
     colors.hovered_button = get_color(&hovered_button).unwrap();
-
-
 
     for deck in 0..deck_data.decks.len() {
         if !enabled_json.check_disabled(&deck) && !enabled_json.check_enabled(&deck) {

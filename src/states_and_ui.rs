@@ -1,10 +1,10 @@
 use crate::{
-    actual_game::setup_actual_game,
+    actual_game::{setup_actual_game, update_score},
     button_input::*,
     constants::{GameGlobals, NUM_COLLUMNS},
     deck::{make_decks, DeckBacks},
     handle_json::*,
-    settings::{ Colors,  SettingsItems},
+    settings::{Colors, SettingsItems},
 };
 use bevy::prelude::*;
 use bevy_inspector_egui::Inspectable;
@@ -46,7 +46,12 @@ impl Plugin for MenuPlugin {
         )
         // InGame
         .add_system_set(SystemSet::on_enter(GameState::InGame).with_system(setup_actual_game))
-        .add_system_set(SystemSet::on_update(GameState::InGame).with_system(scroll_gamemap))
+        .add_system_set(
+            SystemSet::on_update(GameState::InGame)
+                .with_system(scroll_gamemap)
+                .with_system(update_score)
+                .with_system(handle_ingame_input),
+        )
         // DeckSelection
         .add_system_set(
             SystemSet::on_update(GameState::DeckSelection).with_system(handle_choosing_cards),
@@ -183,7 +188,6 @@ fn setup_deck_menu(
     deck_backs: Res<DeckBacks>,
     colors: Res<Colors>,
 ) {
-
     let font: Handle<Font> = asset_server.load("fonts/Roboto.ttf");
     let size = Vec2::new(250.0, 100.0);
     let text = spawn_main_text(&mut commands, "Deck Selection", font.clone(), -70.0);
